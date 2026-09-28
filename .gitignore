@@ -1,0 +1,14 @@
+# Sistema operacional / OneDrive
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+~$*
+
+# Dependências e logs
+node_modules/
+*.log
+
+# Editores
+.vscode/
+.idea/
