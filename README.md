@@ -10,6 +10,7 @@ As páginas web rodam direto no navegador e também ficam publicadas no GitHub P
 | Pasta | O que é | Abrir |
 | --- | --- | --- |
 | [`f1-air-simulation`](f1-air-simulation/) | Carro de F1 em perspectiva num túnel de vento 3D: fumaça, partículas, mapa de pressão (Cp) e balança aerodinâmica ao vivo. | [jvbarea.github.io/discovery/f1-air-simulation](https://jvbarea.github.io/discovery/f1-air-simulation/) |
+| [`arvore-ao-sol`](arvore-ao-sol/) | Árvore gerada por código sob o sol, com path tracing escrito do zero em WebGL2, sem bibliotecas e sem RTX. | [jvbarea.github.io/discovery/arvore-ao-sol](https://jvbarea.github.io/discovery/arvore-ao-sol/) |
 
 ## Como rodar localmente
 

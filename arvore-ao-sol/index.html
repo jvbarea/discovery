@@ -1,0 +1,904 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Árvore ao Sol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=Figtree:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #DDE3DC; --panel: #F5F7F3; --ink: #16201A; --muted: #56655B; --line: #CAD3CB;
+  --accent: #D08A22; --accent-soft: #F3DDB6; --on-accent: #231503;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-ui: "Figtree", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-data: "DM Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B100D; --panel: #111814; --ink: #E3EAE4; --muted: #919F95; --line: #27312A;
+    --accent: #EFAE48; --accent-soft: #3A2A12; --on-accent: #231503;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B100D; --panel: #111814; --ink: #E3EAE4; --muted: #919F95; --line: #27312A;
+  --accent: #EFAE48; --accent-soft: #3A2A12; --on-accent: #231503;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; background: var(--bg); color: var(--ink); font: 400 14px/1.45 var(--font-ui); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; background: var(--bg); }
+#view:active { cursor: grabbing; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.card { position: fixed; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.title { top: calc(16px + env(safe-area-inset-top, 0px)); left: 16px; padding: 12px 16px 13px; display: grid; gap: 2px; max-width: calc(100% - 32px); }
+.title h1 { margin: 0; font: italic 500 30px/1.05 var(--font-display); letter-spacing: -0.01em; text-wrap: balance; }
+.title p { margin: 0; font-size: 12.5px; color: var(--muted); }
+.controls { left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(360px, calc(100% - 32px)); padding: 14px 16px; display: grid; gap: 12px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+input[type="range"] { width: 100%; margin: 0; height: 22px; background: transparent; -webkit-appearance: none; appearance: none; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, #6d4a86, #d8813a 18%, #f3d27a 50%, #d8813a 82%, #6d4a86); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, #6d4a86, #d8813a 18%, #f3d27a 50%, #d8813a 82%, #6d4a86); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--ink); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--ink); }
+.ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: -4px; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.btn { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--ink); background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
+.btn:disabled { opacity: .55; cursor: progress; }
+.hint { font-size: 12px; color: var(--muted); }
+.stats { right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(330px, calc(100% - 32px)); padding: 14px 16px; display: grid; gap: 9px; }
+.stats dl { margin: 0; display: grid; gap: 7px; }
+.stats dl div { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: baseline; }
+.stats dd { margin: 0; font-family: var(--font-data); font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.bar { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+.status { position: fixed; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 12px 18px; max-width: calc(100% - 48px); text-align: center; }
+@media (max-width: 760px) {
+  .title { padding: 9px 12px; }
+  .title h1 { font-size: 24px; }
+  .controls { bottom: calc(118px + env(safe-area-inset-bottom, 0px)); left: 12px; width: calc(100% - 24px); padding: 10px 12px; gap: 8px; }
+  .stats { left: 12px; right: 12px; width: auto; padding: 10px 12px; }
+  .stats dl div { grid-template-columns: 80px 1fr; }
+  .stats .opt, .hint { display: none; }
+}
+</style>
+
+<canvas id="view" aria-label="Render de uma árvore sob o sol, calculado por path tracing"></canvas>
+
+<header class="card title">
+  <h1>Árvore ao Sol</h1>
+  <p>Path tracing em WebGL2 puro, sem nenhuma biblioteca</p>
+</header>
+
+<section class="card controls" aria-label="Controles da cena">
+  <div class="row"><label class="label" for="hour">Hora do dia</label><output class="num" id="hourOut">16:30 · sol a 32°</output></div>
+  <input type="range" id="hour" min="0" max="1" step="0.005" value="0.78">
+  <div class="ends"><span>Nascer</span><span>Meio-dia</span><span>Pôr do sol</span></div>
+  <div class="actions">
+    <button class="btn" id="newTree" type="button">Nova árvore</button>
+    <span class="hint">Arraste para girar, role para aproximar.</span>
+  </div>
+</section>
+
+<section class="card stats" aria-label="Estado do render">
+  <div class="row"><span class="label">Amostras por pixel</span><span class="num" id="spp">0 / 1024</span></div>
+  <div class="bar" aria-hidden="true"><span id="sppBar"></span></div>
+  <dl>
+    <div><dt class="label">Resolução</dt><dd id="res">–</dd></div>
+    <div><dt class="label">GPU</dt><dd id="gpu">–</dd></div>
+    <div class="opt"><dt class="label">Cena</dt><dd id="scene">–</dd></div>
+  </dl>
+</section>
+
+<div class="card status" id="status" role="status">Gerando a árvore…</div>
+
+<script>
+"use strict";
+// ============ Utilidades ============
+const $ = id => document.getElementById(id);
+const fmt = new Intl.NumberFormat('pt-BR');
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+function mulberry32(a) {                       // gerador pseudoaleatório com semente (árvore reproduzível)
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function inSphere(R, rad) {
+  for (;;) {
+    const x = R() * 2 - 1, y = R() * 2 - 1, z = R() * 2 - 1;
+    if (x * x + y * y + z * z <= 1) return [x * rad, y * rad, z * rad];
+  }
+}
+
+// ============ Árvore por colonização do espaço (Runions et al., 2007) ============
+// Pontos "atratores" enchem o volume da copa; os galhos crescem em direção a eles e os consomem.
+function growTree(seed) {
+  const R = mulberry32(seed);
+  const D = 0.22, DI = 1.7, DK = 0.32;             // passo, raio de influência, raio de consumo (m)
+  const CC = [0, 6.2, 0], CR = [4.1, 3.0, 4.1];     // copa: elipsoide principal + lóbulos irregulares
+  const lobes = [];
+  for (let i = 0; i < 7; i++) {
+    const a = R() * Math.PI * 2, d = 1.4 + R() * 2.3;
+    lobes.push([Math.cos(a) * d, 5.0 + R() * 3.0, Math.sin(a) * d, 1.3 + R() * 1.3]);
+  }
+  let att = [];
+  for (let guard = 0; att.length < 2400 && guard < 400000; guard++) {
+    const x = (R() * 2 - 1) * CR[0] * 1.15, y = (R() * 2 - 1) * CR[1] * 1.15, z = (R() * 2 - 1) * CR[2] * 1.15;
+    const e = (x / CR[0]) ** 2 + (y / CR[1]) ** 2 + (z / CR[2]) ** 2;
+    const p = [x + CC[0], y + CC[1], z + CC[2]];
+    let inLobe = false;
+    for (const l of lobes) if ((p[0] - l[0]) ** 2 + (p[1] - l[1]) ** 2 + (p[2] - l[2]) ** 2 < l[3] * l[3]) { inLobe = true; break; }
+    if (!(e < 0.95 || (inLobe && e < 1.3)) || p[1] < 3.3) continue;
+    if (R() > 0.3 + 0.7 * Math.min(1, Math.sqrt(e))) continue;     // mais folhagem na casca externa da copa
+    att.push(p);
+  }
+  // Tronco: sobe quase reto até a base da copa
+  const P = [[0, 0, 0]], parent = [-1];
+  const lx = (R() - 0.5) * 0.12, lz = (R() - 0.5) * 0.12;
+  while (P[P.length - 1][1] < 3.2) {
+    const q = P[P.length - 1];
+    P.push([q[0] + lx * D + (R() - 0.5) * 0.03, q[1] + D, q[2] + lz * D + (R() - 0.5) * 0.03]);
+    parent.push(P.length - 2);
+  }
+  // Grade espacial para achar o nó mais próximo de cada atrator
+  const grid = new Map(), cell = v => Math.floor(v / DI) + 512;
+  const addGrid = i => { const p = P[i], k = (cell(p[0]) * 1024 + cell(p[1])) * 1024 + cell(p[2]); let c = grid.get(k); if (!c) grid.set(k, c = []); c.push(i); };
+  const near = (p, fn) => {
+    const cx = cell(p[0]), cy = cell(p[1]), cz = cell(p[2]);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+      const c = grid.get(((cx + dx) * 1024 + cy + dy) * 1024 + cz + dz);
+      if (c) for (const i of c) fn(i);
+    }
+  };
+  for (let i = 0; i < P.length; i++) addGrid(i);
+  for (let it = 0; it < 300 && att.length; it++) {
+    const acc = new Map();
+    for (const a of att) {
+      let best = -1, bd = DI * DI;
+      near(a, i => { const q = P[i], d2 = (a[0] - q[0]) ** 2 + (a[1] - q[1]) ** 2 + (a[2] - q[2]) ** 2; if (d2 < bd) { bd = d2; best = i; } });
+      if (best < 0) continue;
+      const q = P[best], d = Math.sqrt(bd) || 1;
+      let v = acc.get(best);
+      if (!v) acc.set(best, v = [0, 0, 0]);
+      v[0] += (a[0] - q[0]) / d; v[1] += (a[1] - q[1]) / d; v[2] += (a[2] - q[2]) / d;
+    }
+    if (!acc.size) break;
+    let grown = 0;
+    for (const [i, v] of acc) {
+      let x = v[0] + (R() - 0.5) * 0.15, y = v[1] + 0.12, z = v[2] + (R() - 0.5) * 0.15;   // leve tropismo para a luz
+      const l = Math.hypot(x, y, z) || 1;
+      const q = P[i], np = [q[0] + x / l * D, q[1] + y / l * D, q[2] + z / l * D];
+      let dup = false;
+      near(np, j => { if (parent[j] === i && (P[j][0] - np[0]) ** 2 + (P[j][1] - np[1]) ** 2 + (P[j][2] - np[2]) ** 2 < (D * 0.35) ** 2) dup = true; });
+      if (dup) continue;
+      P.push(np); parent.push(i); addGrid(P.length - 1); grown++;
+    }
+    if (!grown) break;
+    att = att.filter(a => {
+      let keep = true;
+      near(a, j => { if (keep && (a[0] - P[j][0]) ** 2 + (a[1] - P[j][1]) ** 2 + (a[2] - P[j][2]) ** 2 < DK * DK) keep = false; });
+      return keep;
+    });
+  }
+  const n = P.length, children = Array.from({ length: n }, () => []);
+  for (let i = 1; i < n; i++) children[parent[i]].push(i);
+  for (let pass = 0; pass < 2; pass++) for (let i = 1; i < n; i++) if (children[i].length === 1) {   // suaviza as curvas
+    const a = P[parent[i]], b = P[children[i][0]], p = P[i];
+    for (let k = 0; k < 3; k++) p[k] = p[k] * 0.5 + (a[k] + b[k]) * 0.25;
+  }
+  // Espessura pelo modelo de tubos (regra de Leonardo): r_pai^2,4 = Σ r_filho^2,4
+  const r = new Float32Array(n);
+  for (let i = n - 1; i >= 0; i--) {
+    if (!children[i].length) { r[i] = 0.013; continue; }
+    let s = 0;
+    for (const c of children[i]) s += Math.pow(r[c], 2.4);
+    r[i] = Math.pow(s, 1 / 2.4);
+  }
+  for (let i = 0; i < n; i++) if (P[i][1] < 0.9) r[i] *= 1 + 0.55 * (1 - P[i][1] / 0.9) ** 2;
+
+  // Galhos viram cápsulas; o colo e as raízes aparentes completam a base
+  const caps = [];
+  for (let i = 1; i < n; i++) { const a = P[parent[i]], b = P[i]; caps.push([a[0], a[1], a[2], b[0], b[1], b[2], r[i]]); }
+  caps.push([0, -0.2, 0, 0, 0.35, 0, r[0] * 1.2]);
+  for (let k = 0; k < 6; k++) {
+    const a = k / 6 * Math.PI * 2 + R() * 0.6, L1 = 0.55 + R() * 0.35, L2 = L1 + 0.5 + R() * 0.5;
+    const c = Math.cos(a), s = Math.sin(a), rr = r[0] * (0.42 + R() * 0.15);
+    caps.push([c * 0.1, 0.18, s * 0.1, c * L1, 0.04, s * L1, rr]);
+    caps.push([c * L1, 0.04, s * L1, c * L2, -0.06, s * L2, rr * 0.55]);
+  }
+  // Folhas: elipses pontudas nas pontas e nos raminhos finos, voltadas para cima e para fora
+  const leaves = [];
+  for (let i = 0; i < n; i++) {
+    const tip = !children[i].length;
+    if (P[i][1] < 3.0 || (!tip && r[i] > 0.024)) continue;
+    const count = tip ? 10 : 3;
+    for (let k = 0; k < count; k++) {
+      const o = inSphere(R, 0.34), c = [P[i][0] + o[0], P[i][1] + o[1], P[i][2] + o[2]];
+      const h = Math.hypot(c[0], c[2]) || 1;
+      let nx = c[0] / h * 0.45 + (R() - 0.5) * 0.9, ny = 0.75 + (R() - 0.5) * 0.6, nz = c[2] / h * 0.45 + (R() - 0.5) * 0.9;
+      const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
+      let tx = R() - 0.5, ty = R() - 0.5, tz = R() - 0.5;
+      const dn = tx * nx + ty * ny + tz * nz; tx -= dn * nx; ty -= dn * ny; tz -= dn * nz;
+      const tl = Math.hypot(tx, ty, tz) || 1;
+      const hl = 0.1 + R() * 0.05, hw = hl * (0.55 + R() * 0.15);
+      leaves.push([c[0], c[1], c[2], hl, nx, ny, nz, tx / tl, ty / tl, tz / tl, hw]);
+    }
+  }
+  return { caps, leaves, nodes: n };
+}
+
+// ============ BVH: hierarquia de caixas para o raio testar só o que está no caminho ============
+// Construída com SAH (heurística de área de superfície) em 12 baldes; vai para texturas float.
+const TEXW = 2048;
+function buildScene(tree) {
+  const nC = tree.caps.length, nL = tree.leaves.length, N = nC + nL;
+  const bmin = new Float32Array(N * 3), bmax = new Float32Array(N * 3), cen = new Float32Array(N * 3);
+  for (let i = 0; i < nC; i++) {
+    const c = tree.caps[i];
+    for (let k = 0; k < 3; k++) {
+      const lo = Math.min(c[k], c[3 + k]) - c[6], hi = Math.max(c[k], c[3 + k]) + c[6];
+      bmin[i * 3 + k] = lo; bmax[i * 3 + k] = hi; cen[i * 3 + k] = (lo + hi) / 2;
+    }
+  }
+  for (let j = 0; j < nL; j++) {
+    const L = tree.leaves[j], i = nC + j;
+    const b = [L[5] * L[9] - L[6] * L[8], L[6] * L[7] - L[4] * L[9], L[4] * L[8] - L[5] * L[7]];
+    for (let k = 0; k < 3; k++) {
+      const ext = Math.abs(L[7 + k]) * L[3] + Math.abs(b[k]) * L[10] + 0.002;
+      bmin[i * 3 + k] = L[k] - ext; bmax[i * 3 + k] = L[k] + ext; cen[i * 3 + k] = L[k];
+    }
+  }
+  const idx = new Uint32Array(N);
+  for (let i = 0; i < N; i++) idx[i] = i;
+  const nodes = [], BINS = 12;
+  const half = (x0, y0, z0, x1, y1, z1) => { const a = x1 - x0, b = y1 - y0, c = z1 - z0; return a * b + b * c + c * a; };
+  const bb = new Float32Array(BINS * 6), bc = new Int32Array(BINS), rA = new Float32Array(BINS), rN = new Int32Array(BINS);
+  function build(start, end) {
+    const node = nodes.length / 8, o = node * 8;
+    nodes.push(0, 0, 0, 0, 0, 0, 0, 0);
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    const c0 = [Infinity, Infinity, Infinity], c1 = [-Infinity, -Infinity, -Infinity];
+    for (let i = start; i < end; i++) {
+      const p = idx[i] * 3;
+      x0 = Math.min(x0, bmin[p]); y0 = Math.min(y0, bmin[p + 1]); z0 = Math.min(z0, bmin[p + 2]);
+      x1 = Math.max(x1, bmax[p]); y1 = Math.max(y1, bmax[p + 1]); z1 = Math.max(z1, bmax[p + 2]);
+      for (let k = 0; k < 3; k++) { c0[k] = Math.min(c0[k], cen[p + k]); c1[k] = Math.max(c1[k], cen[p + k]); }
+    }
+    nodes[o] = x0; nodes[o + 1] = y0; nodes[o + 2] = z0; nodes[o + 4] = x1; nodes[o + 5] = y1; nodes[o + 6] = z1;
+    const count = end - start;
+    const leaf = () => { nodes[o + 3] = start; nodes[o + 7] = count; return node; };
+    if (count <= 4) return leaf();
+    const ext = [c1[0] - c0[0], c1[1] - c0[1], c1[2] - c0[2]];
+    const ax = ext[0] > ext[1] ? (ext[0] > ext[2] ? 0 : 2) : (ext[1] > ext[2] ? 1 : 2);
+    if (ext[ax] < 1e-6) return leaf();
+    const k0 = c0[ax], ks = BINS / ext[ax];
+    const binOf = p => Math.min(BINS - 1, ((cen[p * 3 + ax] - k0) * ks) | 0);
+    bc.fill(0);
+    for (let b = 0; b < BINS; b++) bb.set([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity], b * 6);
+    for (let i = start; i < end; i++) {
+      const p = idx[i], b = binOf(p) * 6;
+      bc[b / 6]++;
+      for (let k = 0; k < 3; k++) { bb[b + k] = Math.min(bb[b + k], bmin[p * 3 + k]); bb[b + 3 + k] = Math.max(bb[b + 3 + k], bmax[p * 3 + k]); }
+    }
+    let ra = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity], rn = 0;
+    for (let b = BINS - 1; b > 0; b--) {
+      rn += bc[b];
+      for (let k = 0; k < 3; k++) { ra[k] = Math.min(ra[k], bb[b * 6 + k]); ra[3 + k] = Math.max(ra[3 + k], bb[b * 6 + 3 + k]); }
+      rN[b] = rn; rA[b] = rn ? half(...ra) : 0;
+    }
+    let la = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity], ln = 0, best = -1, bestCost = Infinity;
+    for (let b = 0; b < BINS - 1; b++) {
+      ln += bc[b];
+      for (let k = 0; k < 3; k++) { la[k] = Math.min(la[k], bb[b * 6 + k]); la[3 + k] = Math.max(la[3 + k], bb[b * 6 + 3 + k]); }
+      if (!ln || !rN[b + 1]) continue;
+      const cost = half(...la) * ln + rA[b + 1] * rN[b + 1];
+      if (cost < bestCost) { bestCost = cost; best = b + 1; }
+    }
+    if (best < 0 || (bestCost >= half(x0, y0, z0, x1, y1, z1) * count && count <= 12)) return leaf();
+    let i = start, j = end - 1;
+    while (i <= j) {
+      if (binOf(idx[i]) < best) i++;
+      else { const t = idx[i]; idx[i] = idx[j]; idx[j] = t; j--; }
+    }
+    const mid = (i === start || i === end) ? (start + end) >> 1 : i;
+    build(start, mid);
+    nodes[o + 3] = build(mid, end);
+    nodes[o + 7] = 0;
+    return node;
+  }
+  build(0, N);
+  const nNodes = nodes.length / 8, nodeH = Math.ceil(nNodes * 2 / TEXW), primH = Math.ceil(N * 3 / TEXW);
+  const nodeData = new Float32Array(TEXW * nodeH * 4);
+  nodeData.set(nodes);
+  const primData = new Float32Array(TEXW * primH * 4);
+  for (let s = 0; s < N; s++) {
+    const i = idx[s], o = s * 12;
+    if (i < nC) { const c = tree.caps[i]; primData.set([c[0], c[1], c[2], c[6], c[3], c[4], c[5], 0], o); }
+    else { const L = tree.leaves[i - nC]; primData.set([L[0], L[1], L[2], L[3], L[4], L[5], L[6], 1, L[7], L[8], L[9], L[10]], o); }
+  }
+  return { nodeData, nodeH, primData, primH, nNodes, nCaps: nC, nLeaves: nL };
+}
+
+// ============ Shaders ============
+const VS = `#version 300 es
+void main() {                                   // triângulo que cobre a tela inteira
+  vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+// Path tracer: cada pixel dispara um raio, quica até 4 vezes e soma a luz do sol e do céu.
+const PT_FS = `#version 300 es
+precision highp float;
+precision highp int;
+precision highp sampler2D;
+uniform sampler2D uNodes, uPrims, uAccum, uSky;
+uniform vec2 uRes;
+uniform float uSpp;
+uniform uint uSeed;
+uniform vec3 uCamPos, uCamFwd, uCamRight, uCamUp;
+uniform float uTanHalf;
+uniform vec3 uSunDir, uSunE;
+uniform float uSunCos;
+uniform vec4 uHills[3];
+uniform int uBounces, uGuard;          // limites dos laços como uniform: o compilador não tenta desenrolá-los
+out vec4 outColor;
+
+const float PI = 3.14159265;
+const int TEXW = ${TEXW};
+
+uint rngState;
+uint pcg(uint v) {
+  uint s = v * 747796405u + 2891336453u;
+  uint w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
+  return (w >> 22u) ^ w;
+}
+float rnd() { rngState = pcg(rngState); return float(rngState) * (1.0 / 4294967296.0); }
+
+float hash21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float hash31(vec3 p) { p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.x + p.y) * p.z); }
+float vnoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash21(i), hash21(i + vec2(1, 0)), u.x), mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), u.x), u.y);
+}
+float vnoise3(vec3 p) {
+  vec3 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+  float a = mix(hash31(i), hash31(i + vec3(1, 0, 0)), u.x), b = mix(hash31(i + vec3(0, 1, 0)), hash31(i + vec3(1, 1, 0)), u.x);
+  float c = mix(hash31(i + vec3(0, 0, 1)), hash31(i + vec3(1, 0, 1)), u.x), d = mix(hash31(i + vec3(0, 1, 1)), hash31(i + vec3(1, 1, 1)), u.x);
+  return mix(mix(a, b, u.y), mix(c, d, u.y), u.z);
+}
+float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { s += a * vnoise(p); p = p * 2.03 + vec2(17.1, 9.3); a *= 0.5; } return s; }
+float fbm3(vec3 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vnoise3(p); p = p * 2.07 + vec3(5.3, 1.7, 9.1); a *= 0.5; } return s; }
+
+vec4 nodeAt(int i) { return texelFetch(uNodes, ivec2(i % TEXW, i / TEXW), 0); }
+vec4 primAt(int i) { return texelFetch(uPrims, ivec2(i % TEXW, i / TEXW), 0); }
+
+// Cápsula (segmento com raio): interseção analítica
+float capsule(vec3 ro, vec3 rd, vec3 pa, vec3 pb, float r) {
+  vec3 ba = pb - pa, oa = ro - pa;
+  float baba = dot(ba, ba), bard = dot(ba, rd), baoa = dot(ba, oa), rdoa = dot(rd, oa), oaoa = dot(oa, oa);
+  float a = baba - bard * bard, b = baba * rdoa - baoa * bard, c = baba * oaoa - baoa * baoa - r * r * baba;
+  float h = b * b - a * c;
+  if (h >= 0.0) {
+    float t = (-b - sqrt(h)) / a, y = baoa + t * bard;
+    if (y > 0.0 && y < baba) return t;
+    vec3 oc = (y <= 0.0) ? oa : ro - pb;
+    b = dot(rd, oc); c = dot(oc, oc) - r * r; h = b * b - c;
+    if (h > 0.0) return -b - sqrt(h);
+  }
+  return -1.0;
+}
+// Folha: plano + contorno de folha (base arredondada, ponta aguda)
+bool leaf(vec3 ro, vec3 rd, vec4 p0, vec4 p1, vec4 p2, float tMax, out float t, out vec2 uv) {
+  float dn = dot(rd, p1.xyz);
+  t = -1.0;
+  if (abs(dn) < 1e-7) return false;
+  t = dot(p0.xyz - ro, p1.xyz) / dn;
+  if (t < 1e-4 || t > tMax) return false;
+  vec3 q = ro + rd * t - p0.xyz;
+  float u = dot(q, p2.xyz) / p0.w;
+  if (abs(u) > 1.0) return false;
+  float v = dot(q, cross(p1.xyz, p2.xyz)) / p2.w;
+  if (abs(v) > 0.92 * (1.0 - u) * sqrt(1.0 + u)) return false;
+  uv = vec2(u, v);
+  return true;
+}
+float box(vec3 bmin, vec3 bmax, vec3 ro, vec3 inv, float tMax) {
+  vec3 t0 = (bmin - ro) * inv, t1 = (bmax - ro) * inv;
+  vec3 lo = min(t0, t1), hi = max(t0, t1);
+  float tn = max(max(lo.x, lo.y), max(lo.z, 0.0)), tf = min(min(hi.x, hi.y), min(hi.z, tMax));
+  return tn <= tf ? tn : 1e30;
+}
+
+struct Hit { float t; int prim; int kind; vec2 uv; };   // kind: -1 céu, 0 casca, 1 folha, 2 chão, 3 colina
+Hit trace(vec3 ro, vec3 rd, float tMax, bool shadow) {
+  Hit h; h.t = tMax; h.prim = -1; h.kind = -1; h.uv = vec2(0.0);
+  if (rd.y < -1e-6) { float t = -ro.y / rd.y; if (t > 1e-4 && t < h.t) { h.t = t; h.kind = 2; } }
+  for (int k = 0; k < 3; k++) {
+    vec3 oc = ro - uHills[k].xyz;
+    float b = dot(oc, rd), c = dot(oc, oc) - uHills[k].w * uHills[k].w, d = b * b - c;
+    if (d > 0.0) { float t = -b - sqrt(d); if (t > 1e-3 && t < h.t) { h.t = t; h.kind = 3; h.prim = k; } }
+  }
+  if (shadow && h.kind >= 0) return h;
+  vec3 inv = 1.0 / vec3(abs(rd.x) < 1e-8 ? 1e-8 : rd.x, abs(rd.y) < 1e-8 ? 1e-8 : rd.y, abs(rd.z) < 1e-8 ? 1e-8 : rd.z);
+  int stack[48];
+  float stackT[48];
+  int sp = 0;
+  float tr = box(nodeAt(0).xyz, nodeAt(1).xyz, ro, inv, h.t);
+  if (tr < 1e29) { stack[0] = 0; stackT[0] = tr; sp = 1; }
+  while (sp > 0) {
+    sp--;
+    int node = stack[sp];
+    if (stackT[sp] >= h.t) continue;
+    for (int guard = 0; guard < uGuard; guard++) {
+      vec4 a = nodeAt(node * 2), b = nodeAt(node * 2 + 1);
+      int count = int(b.w);
+      if (count > 0) {
+        int first = int(a.w);
+        for (int i = 0; i < count; i++) {
+          int p = first + i;
+          vec4 p0 = primAt(p * 3), p1 = primAt(p * 3 + 1);
+          if (p1.w < 0.5) {
+            float t = capsule(ro, rd, p0.xyz, p1.xyz, p0.w);
+            if (t > 1e-4 && t < h.t) { h.t = t; h.prim = p; h.kind = 0; if (shadow) return h; }
+          } else {
+            float t; vec2 uv;
+            if (leaf(ro, rd, p0, p1, primAt(p * 3 + 2), h.t, t, uv)) { h.t = t; h.prim = p; h.kind = 1; h.uv = uv; if (shadow) return h; }
+          }
+        }
+        break;
+      }
+      int L = node + 1, R = int(a.w);
+      float tL = box(nodeAt(L * 2).xyz, nodeAt(L * 2 + 1).xyz, ro, inv, h.t);
+      float tR = box(nodeAt(R * 2).xyz, nodeAt(R * 2 + 1).xyz, ro, inv, h.t);
+      if (tL > tR) { int ti = L; L = R; R = ti; float tt = tL; tL = tR; tR = tt; }
+      if (tL >= 1e29) break;
+      if (tR < 1e29 && sp < 48) { stack[sp] = R; stackT[sp] = tR; sp++; }
+      node = L;
+    }
+  }
+  return h;
+}
+vec3 skyL(vec3 d) {                               // céu pré-calculado (espalhamento Rayleigh + Mie)
+  float e = asin(clamp(d.y, 0.0, 1.0));
+  return texture(uSky, vec2(atan(d.x, d.z) / (2.0 * PI) + 0.5, sqrt(e / (0.5 * PI)))).rgb;
+}
+vec3 cosDir(vec3 n) {                             // direção com distribuição de cosseno (superfície difusa)
+  float u = rnd(), v = rnd(), r = sqrt(u), a = 2.0 * PI * v;
+  vec3 t = normalize(abs(n.y) < 0.99 ? cross(n, vec3(0, 1, 0)) : cross(n, vec3(1, 0, 0)));
+  vec3 b = cross(n, t);
+  return normalize(t * (r * cos(a)) + b * (r * sin(a)) + n * sqrt(max(0.0, 1.0 - u)));
+}
+vec3 sunSample() {                                // ponto aleatório no disco do sol: sombras com penumbra real
+  float ct = 1.0 - rnd() * (1.0 - uSunCos), st = sqrt(max(0.0, 1.0 - ct * ct)), a = 2.0 * PI * rnd();
+  vec3 t = normalize(cross(uSunDir, abs(uSunDir.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0)));
+  vec3 b = cross(uSunDir, t);
+  return normalize(t * (st * cos(a)) + b * (st * sin(a)) + uSunDir * ct);
+}
+vec3 grass(vec3 P, float s) {
+  vec2 p = P.xz;
+  float n1 = fbm(p * 0.33 * s), n2 = vnoise(p * 3.1 * s), n3 = vnoise(p * 19.0 * s);
+  vec3 c = mix(vec3(0.062, 0.12, 0.03), vec3(0.13, 0.18, 0.045), smoothstep(0.3, 0.7, n1));
+  c = mix(c, vec3(0.22, 0.2, 0.09), 0.55 * smoothstep(0.6, 0.8, n1 * 0.6 + n2 * 0.4));
+  c *= 0.8 + 0.4 * n3;
+  float soil = 1.0 - smoothstep(0.9, 2.0, length(p) + (n2 - 0.5) * 0.9);    // terra batida junto ao tronco
+  return mix(c, vec3(0.15, 0.115, 0.08) * (0.75 + 0.5 * n3), soil);
+}
+vec3 grassN(vec3 P) {
+  vec2 p = P.xz * 9.0;
+  float h0 = vnoise(p), hx = vnoise(p + vec2(0.15, 0.0)), hz = vnoise(p + vec2(0.0, 0.15));
+  return normalize(vec3((h0 - hx) * 0.35, 1.0, (h0 - hz) * 0.35));
+}
+vec3 bark(vec3 P, vec3 a, vec3 b, float r) {      // sulcos alongados no sentido do galho + manchas de líquen
+  vec3 ax = normalize(b - a);
+  vec3 e1 = normalize(cross(ax, abs(ax.y) < 0.95 ? vec3(0, 1, 0) : vec3(1, 0, 0))), e2 = cross(ax, e1), q = P - a;
+  float f = fbm3(vec3(dot(q, e1) * 9.0, dot(q, e2) * 9.0, dot(P, ax) * 2.4));
+  vec3 c = mix(vec3(0.07, 0.058, 0.048), vec3(0.29, 0.25, 0.2), smoothstep(0.38, 0.72, f));
+  float lichen = smoothstep(0.62, 0.8, vnoise3(P * 3.0)) * step(0.06, r);
+  return mix(c, vec3(0.34, 0.37, 0.24), lichen * 0.5);
+}
+void leafMat(int prim, vec2 uv, out vec3 R, out vec3 T) {
+  float h = hash21(vec2(float(prim) * 0.137, 3.7));
+  vec3 base = mix(vec3(0.07, 0.16, 0.035), vec3(0.13, 0.19, 0.03), h);
+  if (h > 0.94) base = vec3(0.24, 0.18, 0.04);                               // algumas folhas amareladas
+  float rib = 1.0 + 0.5 * (1.0 - smoothstep(0.0, 0.07, abs(uv.y)));        // nervura central mais clara
+  R = base * rib * (0.85 + 0.15 * (1.0 - abs(uv.x)));
+  T = base * vec3(1.35, 1.5, 0.7) * 0.9;                                    // luz atravessa a folha, mais amarelada
+}
+
+vec3 radiance(vec3 ro, vec3 rd, out float tFirst) {
+  vec3 L = vec3(0.0), thr = vec3(1.0);
+  tFirst = -1.0;
+  for (int bounce = 0; bounce < uBounces; bounce++) {
+    Hit h = trace(ro, rd, 1e5, false);
+    if (h.kind < 0) {
+      vec3 sky = skyL(rd);
+      if (bounce == 0 && dot(rd, uSunDir) > uSunCos) sky += uSunE / (2.0 * PI * (1.0 - uSunCos));
+      L += thr * sky;
+      break;
+    }
+    if (bounce == 0) tFirst = h.t;
+    vec3 P = ro + rd * h.t, N, alb, trn = vec3(0.0);
+    bool isLeaf = h.kind == 1;
+    if (h.kind == 0) {
+      vec4 p0 = primAt(h.prim * 3), p1 = primAt(h.prim * 3 + 1);
+      vec3 ba = p1.xyz - p0.xyz;
+      N = normalize(P - p0.xyz - ba * clamp(dot(P - p0.xyz, ba) / dot(ba, ba), 0.0, 1.0));
+      alb = bark(P, p0.xyz, p1.xyz, p0.w);
+    } else if (isLeaf) {
+      N = primAt(h.prim * 3 + 1).xyz;
+      leafMat(h.prim, h.uv, alb, trn);
+    } else if (h.kind == 2) {
+      N = grassN(P);
+      alb = grass(P, 1.0);
+    } else {
+      N = normalize(P - uHills[h.prim].xyz);
+      alb = grass(P, 0.05);
+    }
+    vec3 Nf = dot(N, rd) < 0.0 ? N : -N;
+    // Luz direta: amostra o disco do sol e confere a sombra com um segundo raio
+    vec3 Ls = sunSample(), f = vec3(0.0), side = Nf;
+    float c = dot(Nf, Ls);
+    if (c > 0.0) f = alb * c;
+    else if (isLeaf) { f = trn * -c; side = -Nf; }                          // sol atrás da folha: ela brilha
+    if (f.x + f.y + f.z > 0.0) {
+      Hit s = trace(P + side * 2e-3, Ls, 1e5, true);
+      if (s.kind < 0) L += thr * uSunE * f / PI;
+    }
+    // Luz indireta: o raio segue para o próximo quique (reflete ou, na folha, atravessa)
+    float pT = isLeaf ? 0.45 : 0.0;
+    if (isLeaf && rnd() < pT) { rd = cosDir(-Nf); ro = P - Nf * 2e-3; thr *= trn / pT; }
+    else { rd = cosDir(Nf); ro = P + Nf * 2e-3; thr *= alb / (1.0 - pT); }
+    if (bounce >= 1) {                                                      // roleta russa
+      float q = clamp(max(thr.r, max(thr.g, thr.b)), 0.05, 1.0);
+      if (rnd() > q) break;
+      thr /= q;
+    }
+  }
+  return L;
+}
+
+void main() {
+  ivec2 pix = ivec2(gl_FragCoord.xy);
+  rngState = pcg(uint(pix.x) * 1973u + uint(pix.y) * 9277u + uSeed * 26699u);
+  vec2 ndc = ((gl_FragCoord.xy - 0.5 + vec2(rnd(), rnd())) / uRes) * 2.0 - 1.0;
+  vec3 rd = normalize(uCamFwd + ndc.x * uTanHalf * (uRes.x / uRes.y) * uCamRight + ndc.y * uTanHalf * uCamUp);
+  float t0;
+  vec3 col = radiance(uCamPos, rd, t0);
+  if (t0 > 0.0) {                                                           // perspectiva aérea
+    float T = exp(-t0 * 0.0009);
+    col = col * T + skyL(normalize(vec3(rd.x, 0.1, rd.z))) * (1.0 - T);
+  }
+  if (!(col.r + col.g + col.b >= 0.0)) col = vec3(0.0);
+  col = min(col, vec3(30.0));
+  vec3 prev = texelFetch(uAccum, pix, 0).rgb;
+  outColor = vec4(uSpp < 0.5 ? col : mix(prev, col, 1.0 / (uSpp + 1.0)), 1.0);
+}
+`;
+
+// Exibição: exposição, curva de tom ACES, vinheta leve e gama
+const DISP_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uAccum;
+uniform vec2 uView;
+uniform float uExposure;
+out vec4 outColor;
+vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
+void main() {
+  vec2 uv = gl_FragCoord.xy / uView;
+  vec3 c = aces(texture(uAccum, uv).rgb * uExposure);
+  vec2 d = uv - 0.5;
+  c *= 1.0 - 0.35 * dot(d, d);
+  outColor = vec4(pow(c, vec3(1.0 / 2.2)), 1.0);
+}`;
+
+// ============ Céu: espalhamento Rayleigh (azul) + Mie (brilho em volta do sol) ============
+// Calculado na CPU numa textura de 128×48 sempre que o sol muda; o shader só consulta a textura.
+const ATM = { Rp: 6371e3, Ra: 6471e3, kR: [5.5e-6, 13.0e-6, 22.4e-6], kM: 21e-6, HR: 8e3, HM: 1.2e3, g: 0.758, I: 20 };
+const SKY_W = 128, SKY_H = 48, SUN_COS = Math.cos(0.00465);   // raio angular real do sol: 0,27°
+function exitT(px, py, pz, dx, dy, dz, r) { const b = px * dx + py * dy + pz * dz, c = px * px + py * py + pz * pz - r * r; return -b + Math.sqrt(Math.max(0, b * b - c)); }
+function hitsPlanet(px, py, pz, dx, dy, dz) {
+  const b = px * dx + py * dy + pz * dz, c = px * px + py * py + pz * pz - ATM.Rp * ATM.Rp, d = b * b - c;
+  return d > 0 && -b - Math.sqrt(d) > 0;
+}
+function depthTo(px, py, pz, dx, dy, dz, steps) {      // profundidade óptica até o topo da atmosfera
+  const ds = exitT(px, py, pz, dx, dy, dz, ATM.Ra) / steps;
+  let r = 0, m = 0;
+  for (let j = 0; j < steps; j++) {
+    const u = (j + 0.5) * ds, h = Math.hypot(px + dx * u, py + dy * u, pz + dz * u) - ATM.Rp;
+    r += Math.exp(-h / ATM.HR) * ds; m += Math.exp(-h / ATM.HM) * ds;
+  }
+  return [r, m];
+}
+function skyRadiance(dx, dy, dz, s, out) {
+  const oy = ATM.Rp + 1, steps = 10, g = ATM.g;
+  let tEnd = exitT(0, oy, 0, dx, dy, dz, ATM.Ra);
+  if (hitsPlanet(0, oy, 0, dx, dy, dz)) { const b = oy * dy, c = oy * oy - ATM.Rp * ATM.Rp; tEnd = Math.min(tEnd, -b - Math.sqrt(b * b - c)); }
+  const ds = tEnd / steps, mu = dx * s[0] + dy * s[1] + dz * s[2];
+  const pR = 3 / (16 * Math.PI) * (1 + mu * mu);
+  const pM = 3 / (8 * Math.PI) * ((1 - g * g) * (1 + mu * mu)) / ((2 + g * g) * Math.pow(1 + g * g - 2 * mu * g, 1.5));
+  let odR = 0, odM = 0;
+  const tR = [0, 0, 0], tM = [0, 0, 0];
+  for (let i = 0; i < steps; i++) {
+    const t = (i + 0.5) * ds, px = dx * t, py = oy + dy * t, pz = dz * t, h = Math.hypot(px, py, pz) - ATM.Rp;
+    const dR = Math.exp(-h / ATM.HR) * ds, dM = Math.exp(-h / ATM.HM) * ds;
+    odR += dR; odM += dM;
+    if (hitsPlanet(px, py, pz, s[0], s[1], s[2])) continue;
+    const [lR, lM] = depthTo(px, py, pz, s[0], s[1], s[2], 5);
+    for (let c = 0; c < 3; c++) {
+      const at = Math.exp(-(ATM.kR[c] * (odR + lR) + ATM.kM * 1.1 * (odM + lM)));
+      tR[c] += dR * at; tM[c] += dM * at;
+    }
+  }
+  for (let c = 0; c < 3; c++) out[c] = ATM.I * (pR * ATM.kR[c] * tR[c] + pM * ATM.kM * tM[c]);
+}
+const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+function computeSky(s) {
+  const data = new Float32Array(SKY_W * SKY_H * 4), L = [0, 0, 0];
+  let Esky = 0;
+  for (let j = 0; j < SKY_H; j++) {
+    const v = (j + 0.5) / SKY_H, e = v * v * Math.PI / 2, ce = Math.cos(e), se = Math.sin(e);
+    for (let i = 0; i < SKY_W; i++) {
+      const phi = ((i + 0.5) / SKY_W - 0.5) * 2 * Math.PI;
+      skyRadiance(ce * Math.sin(phi), se, ce * Math.cos(phi), s, L);
+      const hz = Math.exp(-e / 0.1), Y = lum(L);          // o horizonte real é esbranquiçado (espalhamento múltiplo)
+      for (let c = 0; c < 3; c++) L[c] = L[c] * (1 - 0.6 * hz) + Y * [0.96, 1.0, 1.07][c] * 0.6 * hz * 1.35;
+      data.set([L[0], L[1], L[2], 1], (j * SKY_W + i) * 4);
+      Esky += lum(L) * se * ce * Math.PI * v / SKY_H * 2 * Math.PI / SKY_W;   // irradiância no plano horizontal
+    }
+  }
+  const [r, m] = depthTo(0, ATM.Rp + 1, 0, s[0], s[1], s[2], 32);
+  const sunE = ATM.kR.map(k => ATM.I * Math.exp(-(k * r + ATM.kM * 1.1 * m)));
+  return { data, Esky, sunE };
+}
+
+// ============ WebGL2 ============
+const MOBILE = matchMedia('(max-width: 760px)').matches || (navigator.hardwareConcurrency || 8) <= 4;
+const canvas = $('view');
+const gl = canvas.getContext('webgl2', { antialias: false, depth: false, alpha: false, powerPreference: 'high-performance' });
+function fail(msg) { const s = $('status'); s.hidden = false; s.textContent = msg; throw new Error(msg); }
+if (!gl) fail('Este navegador não oferece WebGL2, que o path tracing precisa.');
+const floatRT = gl.getExtension('EXT_color_buffer_float');
+const halfRT = floatRT ? null : gl.getExtension('EXT_color_buffer_half_float');
+if (!floatRT && !halfRT) fail('Este navegador não renderiza em ponto flutuante (EXT_color_buffer_float), que o acúmulo de amostras precisa.');
+const ACC_FMT = floatRT ? gl.RGBA32F : gl.RGBA16F;
+const ACC_FILTER = ACC_FMT === gl.RGBA16F || gl.getExtension('OES_texture_float_linear') ? gl.LINEAR : gl.NEAREST;
+const parallel = gl.getExtension('KHR_parallel_shader_compile');
+gl.bindVertexArray(gl.createVertexArray());
+canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); const s = $('status'); s.hidden = false; s.textContent = 'A GPU reiniciou o contexto gráfico. Recarregue a página para continuar.'; });
+
+function program(vsSrc, fsSrc) {
+  const p = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vsSrc], [gl.FRAGMENT_SHADER, fsSrc]]) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    gl.attachShader(p, s);
+    (p.shaders = p.shaders || []).push(s);
+  }
+  gl.linkProgram(p);
+  return p;
+}
+function finish(p, names) {
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+    const log = p.shaders.map(s => gl.getShaderInfoLog(s)).join('\n') + gl.getProgramInfoLog(p);
+    console.error(log);
+    fail('O shader não compilou nesta GPU: ' + log.slice(0, 180));
+  }
+  const u = {};
+  for (const n of names) u[n] = gl.getUniformLocation(p, n);
+  return { p, u };
+}
+function dataTex(data, w, h, internal, filter, wrapS = gl.CLAMP_TO_EDGE) {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internal, w, h, 0, gl.RGBA, gl.FLOAT, data);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrapS);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+// Dois buffers de acúmulo em ponto flutuante (lê um, escreve no outro, e alterna)
+const acc = { w: 0, h: 0, tex: [null, null], fbo: [null, null], cur: 0 };
+function ensureTargets(w, h) {
+  if (acc.w === w && acc.h === h) return false;
+  for (let i = 0; i < 2; i++) {
+    if (acc.tex[i]) { gl.deleteTexture(acc.tex[i]); gl.deleteFramebuffer(acc.fbo[i]); }
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, ACC_FMT, w, h);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, ACC_FILTER);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, ACC_FILTER);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const f = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    acc.tex[i] = t; acc.fbo[i] = f;
+  }
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  acc.w = w; acc.h = h;
+  return true;
+}
+
+// ============ Estado, câmera orbital e sol ============
+const S = {
+  ready: false, spp: 0, maxSpp: 1024, frame: 0, moving: false, seed: 20260928,
+  still: MOBILE ? 0.45 : 0.6, move: 0.35, calib: { n: 0, t0: 0, done: false },
+  sunT: 0.78, sunDirty: false, sun: null, scene: null, tex: null, sky: null, pt: null, disp: null,
+};
+const CAM0 = { yaw: 0.55, pitch: -0.11, dist: 17.5 };
+const cam = { ...CAM0, target: [0, 4.2, 0], fov: 40 };
+const HILLS = new Float32Array([-900, -560, -1400, 600, 700, -700, -1800, 760, 1600, -420, -600, 480]);
+const reset = () => { S.spp = 0; };
+function camBasis() {
+  const minPitch = Math.asin(clamp((0.45 - cam.target[1]) / cam.dist, -0.99, 0.99));
+  cam.pitch = clamp(cam.pitch, minPitch, 1.25);
+  const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  const pos = [cam.target[0] + cam.dist * cp * Math.sin(cam.yaw), cam.target[1] + cam.dist * sp, cam.target[2] + cam.dist * cp * Math.cos(cam.yaw)];
+  let f = [cam.target[0] - pos[0], cam.target[1] - pos[1], cam.target[2] - pos[2]];
+  const fl = Math.hypot(...f); f = f.map(v => v / fl);
+  let r = [-f[2], 0, f[0]];
+  const rl = Math.hypot(...r); r = r.map(v => v / rl);
+  const up = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]];
+  return { pos, f, r, up };
+}
+function setMoving(on) { if (S.moving !== on) { S.moving = on; reset(); } }
+const pts = new Map();
+let pinch0 = 0, dist0 = 0, wheelTimer = 0;
+const pinch = () => { const [a, b] = [...pts.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pts.size === 2) { pinch0 = pinch(); dist0 = cam.dist; }
+  setMoving(true);
+});
+canvas.addEventListener('pointermove', e => {
+  const p = pts.get(e.pointerId);
+  if (!p) return;
+  const dx = e.clientX - p[0], dy = e.clientY - p[1];
+  pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pts.size === 1) { cam.yaw -= dx * 0.006; cam.pitch += dy * 0.004; }
+  else if (pts.size === 2 && pinch0 > 0) cam.dist = clamp(dist0 * pinch0 / pinch(), 6, 45);
+  reset();
+});
+const release = e => { pts.delete(e.pointerId); if (!pts.size) setMoving(false); };
+canvas.addEventListener('pointerup', release);
+canvas.addEventListener('pointercancel', release);
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.001), 6, 45);
+  setMoving(true); reset();
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(() => setMoving(false), 200);
+}, { passive: false });
+canvas.addEventListener('dblclick', () => { Object.assign(cam, CAM0); reset(); });
+
+// Hora do dia → posição do sol (nasce a leste, passa por trás da árvore, se põe a oeste)
+function updateSun() {
+  const t = S.sunT, az = (100 + 160 * t) * Math.PI / 180, el = (2 + 55 * Math.sin(Math.PI * t)) * Math.PI / 180;
+  const dir = [Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az)];
+  const sky = computeSky(dir);
+  if (S.sky) gl.deleteTexture(S.sky);
+  S.sky = dataTex(sky.data, SKY_W, SKY_H, gl.RGBA16F, gl.LINEAR, gl.REPEAT);
+  const E = lum(sky.sunE) * Math.max(0, dir[1]) + sky.Esky;
+  S.sun = { dir, E: sky.sunE, exposure: 5.4 / Math.pow(Math.max(E, 1e-3), 0.9) };
+  const min = Math.round(360 + t * 720), hh = String(Math.floor(min / 60)).padStart(2, '0'), mm = String(min % 60).padStart(2, '0');
+  $('hourOut').textContent = `${hh}:${mm} · sol a ${Math.round(el * 180 / Math.PI)}°`;
+  reset();
+}
+$('hour').addEventListener('input', e => { S.sunT = +e.target.value; S.sunDirty = true; setMoving(true); });
+$('hour').addEventListener('change', () => setMoving(false));
+
+// ============ Árvore → BVH → GPU ============
+const showStatus = msg => { const s = $('status'); s.hidden = !msg; if (msg) s.textContent = msg; };
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+function loadTree(seed) {
+  const t0 = performance.now();
+  const sc = buildScene(growTree(seed));
+  if (S.tex) { gl.deleteTexture(S.tex.nodes); gl.deleteTexture(S.tex.prims); }
+  S.tex = { nodes: dataTex(sc.nodeData, TEXW, sc.nodeH, gl.RGBA32F, gl.NEAREST), prims: dataTex(sc.primData, TEXW, sc.primH, gl.RGBA32F, gl.NEAREST) };
+  S.scene = sc;
+  $('scene').textContent = `${fmt.format(sc.nCaps)} galhos · ${fmt.format(sc.nLeaves)} folhas · BVH com ${fmt.format(sc.nNodes)} nós (${fmt.format(Math.round(performance.now() - t0))} ms)`;
+  reset();
+}
+$('newTree').addEventListener('click', async () => {
+  const b = $('newTree');
+  b.disabled = true;
+  showStatus('Gerando uma nova árvore…');
+  await nextFrame();
+  S.seed = (Math.random() * 1e9) | 0;
+  loadTree(S.seed);
+  showStatus('');
+  b.disabled = false;
+});
+
+// ============ Laço de render: uma amostra por pixel a cada quadro, acumulando ============
+let hudAt = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!S.ready) return;
+  if (S.sunDirty) { S.sunDirty = false; updateSun(); }
+  const cw = Math.max(1, canvas.clientWidth | 0), ch = Math.max(1, canvas.clientHeight | 0);
+  if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; reset(); }
+  if (S.spp >= S.maxSpp && !S.moving) return;                 // imagem pronta: a GPU descansa
+  const scale = S.moving ? Math.min(S.move, S.still) : S.still;
+  const rw = Math.max(64, Math.round(cw * scale)), rh = Math.max(36, Math.round(ch * scale));
+  if (ensureTargets(rw, rh)) S.spp = 0;
+  const B = camBasis(), src = acc.cur, dst = 1 - src, u = S.pt.u;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, acc.fbo[dst]);
+  gl.viewport(0, 0, rw, rh);
+  gl.useProgram(S.pt.p);
+  [[S.tex.nodes, 'uNodes'], [S.tex.prims, 'uPrims'], [acc.tex[src], 'uAccum'], [S.sky, 'uSky']].forEach(([t, n], i) => {
+    gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(u[n], i);
+  });
+  gl.uniform2f(u.uRes, rw, rh);
+  gl.uniform1f(u.uSpp, S.spp);
+  gl.uniform1ui(u.uSeed, (S.frame++ * 7919 + 13) >>> 0);
+  gl.uniform3fv(u.uCamPos, B.pos); gl.uniform3fv(u.uCamFwd, B.f); gl.uniform3fv(u.uCamRight, B.r); gl.uniform3fv(u.uCamUp, B.up);
+  gl.uniform1f(u.uTanHalf, Math.tan(cam.fov * Math.PI / 360));
+  gl.uniform3fv(u.uSunDir, S.sun.dir); gl.uniform3fv(u.uSunE, S.sun.E); gl.uniform1f(u.uSunCos, SUN_COS);
+  gl.uniform4fv(u.uHills, HILLS);
+  gl.uniform1i(u.uBounces, 4);
+  gl.uniform1i(u.uGuard, 64);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, cw, ch);
+  gl.useProgram(S.disp.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, acc.tex[dst]);
+  gl.uniform1i(S.disp.u.uAccum, 0);
+  gl.uniform2f(S.disp.u.uView, cw, ch);
+  gl.uniform1f(S.disp.u.uExposure, S.sun.exposure);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  acc.cur = dst;
+  S.spp++;
+  // Calibração: mede o tempo por quadro e ajusta a resolução interna para ~18 quadros/s
+  const c = S.calib;
+  if (!c.done && !S.moving) {
+    c.n++;
+    if (c.n === 6) c.t0 = now;
+    if (c.n === 18) {
+      const ms = (now - c.t0) / 12;
+      S.still = Math.round(clamp(S.still * Math.sqrt(55 / ms), 0.3, 1) * 20) / 20;
+      S.move = clamp(S.still * 0.6, 0.25, 0.6);
+      c.done = true; reset();
+    }
+  }
+  if (now - hudAt > 250 || S.spp >= S.maxSpp) {
+    hudAt = now;
+    $('spp').textContent = `${fmt.format(S.spp)} / ${fmt.format(S.maxSpp)}`;
+    $('sppBar').style.width = (S.spp / S.maxSpp * 100).toFixed(1) + '%';
+    $('res').textContent = `${rw} × ${rh}${S.moving ? ' (movendo)' : ''}`;
+  }
+}
+
+async function init() {
+  showStatus('Gerando a árvore…');
+  await nextFrame();
+  loadTree(S.seed);
+  showStatus('Compilando o path tracer para a sua GPU…');
+  await nextFrame();
+  const pt = program(VS, PT_FS), disp = program(VS, DISP_FS);
+  if (parallel) while (!gl.getProgramParameter(pt, parallel.COMPLETION_STATUS_KHR)) await nextFrame();
+  S.pt = finish(pt, ['uNodes', 'uPrims', 'uAccum', 'uSky', 'uRes', 'uSpp', 'uSeed', 'uCamPos', 'uCamFwd', 'uCamRight', 'uCamUp', 'uTanHalf', 'uSunDir', 'uSunE', 'uSunCos', 'uHills', 'uBounces', 'uGuard']);
+  S.disp = finish(disp, ['uAccum', 'uView', 'uExposure']);
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  const raw = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  const m = /ANGLE \([^,]+, (.+?)(?: \(0x[0-9a-f]+\))?(?: Direct3D| OpenGL| Vulkan| Metal|, )/i.exec(raw);
+  $('gpu').textContent = (m ? m[1] : raw).trim();
+  S.sunT = +$('hour').value;
+  updateSun();
+  S.ready = true;
+  showStatus('');
+}
+requestAnimationFrame(frame);
+init();
+</script>
