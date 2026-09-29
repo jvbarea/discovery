@@ -1,0 +1,2034 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Golden Spur Hold'em</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rokkitt:wght@500;700;800&family=Oswald:wght@400;500;600;700&family=Libre+Franklin:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Paleta noturna (feltro à luz de lampião) é a principal; a clara imita papel de baralho esverdeado. */
+:root {
+  --ground: #080D0A; --slide: #0F1813; --glow: #1B2B21; --panel: #142019; --line: #26362C; --line-2: #3A4D41;
+  --ink: #EDE7D6; --muted: #A3A893; --faint: #737C6C;
+  --brass: #D4AC5E; --on-brass: #1B1305; --red: #E2594E; --felt: #4FAE6B; --navy: #9DB0EA;
+  --shadow: 0 18px 50px rgba(0,0,0,.45);
+  --font-display: "Rokkitt", "Rockwell", "Roboto Slab", Georgia, serif;
+  --font-num: "Oswald", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Libre Franklin", "Franklin Gothic Book", "Segoe UI", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --fs-h1: 104px; --fs-h2: 46px; --fs-lede: 22px; --fs-body: 18.5px; --fs-table: 15.5px; --fs-small: 14px; --fs-kick: 14.5px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ground: #D6DDD3; --slide: #F1F3EC; --glow: #FBFCF7; --panel: #E4E9E0; --line: #C8D0C5; --line-2: #A6B2A5;
+    --ink: #15201A; --muted: #536057; --faint: #7B877D;
+    --brass: #8A621E; --on-brass: #FFF9EA; --red: #B3261E; --felt: #1D6A39; --navy: #26377C;
+    --shadow: 0 14px 40px rgba(30,45,35,.18);
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --ground: #D6DDD3; --slide: #F1F3EC; --glow: #FBFCF7; --panel: #E4E9E0; --line: #C8D0C5; --line-2: #A6B2A5;
+  --ink: #15201A; --muted: #536057; --faint: #7B877D;
+  --brass: #8A621E; --on-brass: #FFF9EA; --red: #B3261E; --felt: #1D6A39; --navy: #26377C;
+  --shadow: 0 14px 40px rgba(30,45,35,.18);
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.45 var(--font-body); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* ---------- deck ---------- */
+.slide { position: relative; display: flex; flex-direction: column; gap: 22px; padding: 58px 92px 64px 108px;
+  background: radial-gradient(120% 90% at 50% -12%, var(--glow), var(--slide) 58%); color: var(--ink); }
+.deck.present { position: fixed; top: 0; right: 0; left: 0; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); overflow: hidden; }
+.deck.present .slide { display: none; position: absolute; left: 50%; top: 50%; width: 1600px; height: 900px;
+  transform: translate(-50%, -50%) scale(var(--k, 1)); box-shadow: var(--shadow); overflow-y: auto; overflow-x: hidden; }
+.deck.present .slide.is-current { display: flex; animation: deal .22s ease-out; }
+@keyframes deal { from { opacity: .35; } to { opacity: 1; } }
+.deck.doc { display: grid; gap: 28px; justify-items: center; padding-block: 24px calc(100px + env(safe-area-inset-bottom, 0px)); padding-inline: 16px;
+  --fs-h1: 66px; --fs-h2: 34px; --fs-lede: 19px; --fs-body: 16.5px; --fs-table: 14.5px; --fs-small: 13.5px; --fs-kick: 13px; }
+.deck.doc .slide { width: min(1200px, 100%); border: 1px solid var(--line); border-radius: 6px; padding: 46px 40px 58px 84px; }
+
+.idx { position: absolute; display: grid; justify-items: center; gap: 1px; font-family: var(--font-display); line-height: 1; pointer-events: none; user-select: none; }
+.idx b { font-weight: 800; font-size: 34px; }
+.idx i { font-style: normal; font-size: 27px; }
+.idx.tl { top: 26px; left: 32px; }
+.idx.br { bottom: 26px; right: 32px; transform: rotate(180deg); }
+.slide[data-suit="♥"] .idx, .slide[data-suit="♦"] .idx { color: var(--red); }
+.meta { position: absolute; left: 108px; bottom: 26px; font: 500 12.5px/1 var(--font-num); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.deck.doc .meta { left: 84px; }
+
+.sh { display: grid; gap: 10px; }
+.kicker { margin: 0; font: 500 var(--fs-kick)/1 var(--font-num); letter-spacing: .16em; text-transform: uppercase; color: var(--brass); }
+.slide h1 { margin: 0; font: 800 var(--fs-h1)/.92 var(--font-display); letter-spacing: -.01em; text-wrap: balance; }
+.slide h2 { margin: 0; max-width: 34ch; font: 700 var(--fs-h2)/1.04 var(--font-display); letter-spacing: -.005em; text-wrap: balance; }
+.slide h3 { margin: 0 0 10px; font: 500 calc(var(--fs-kick) + 1px)/1.15 var(--font-num); letter-spacing: .13em; text-transform: uppercase; color: var(--brass); }
+.lede { margin: 0; max-width: 62ch; font-size: var(--fs-lede); line-height: 1.42; }
+.slide p, .slide li { font-size: var(--fs-body); line-height: 1.45; }
+.slide p { margin: 0; max-width: 68ch; }
+.slide ul, .slide ol { margin: 0; display: grid; gap: 6px; }
+.slide ul { list-style: none; padding: 0; }
+.slide ul > li { position: relative; padding-left: 18px; }
+.slide ul > li::before { content: ""; position: absolute; left: 2px; top: .66em; width: 5px; height: 5px; background: var(--faint); transform: rotate(45deg); }
+.slide ol { padding-left: 1.5em; }
+.slide ol > li::marker { font-family: var(--font-num); font-weight: 500; color: var(--brass); }
+.slide li > ul { margin-top: 5px; }
+.muted { color: var(--muted); }
+.small { font-size: var(--fs-small) !important; color: var(--muted); }
+.slide .small li, .slide li.small { font-size: var(--fs-small); }
+code, kbd, .mono { font-family: var(--font-mono); font-size: .86em; }
+kbd { display: inline-block; min-width: 1.8em; padding: 1px 6px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 4px; background: var(--panel); text-align: center; line-height: 1.3; }
+strong { font-weight: 600; }
+.accent { color: var(--brass); }
+
+.body { flex: 1; min-height: 0; display: grid; gap: 24px; align-content: start; }
+.cols { display: grid; gap: 34px; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); align-items: start; }
+.c3 { --n: 3; } .c4 { --n: 4; }
+.c12 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.c21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.c32 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.c23 { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
+.stack { display: grid; gap: 18px; align-content: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; }
+.rule { font: 500 12px/1 var(--font-num); letter-spacing: .14em; text-transform: uppercase; color: var(--brass); margin-right: 8px; }
+
+.tw { overflow-x: auto; }
+.t { width: 100%; border-collapse: collapse; font-size: var(--fs-table); line-height: 1.35; font-variant-numeric: tabular-nums; }
+.t th { padding: 0 12px 8px 0; border-bottom: 1px solid var(--line-2); font: 500 calc(var(--fs-table) - 3px)/1.2 var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-align: left; vertical-align: bottom; }
+.t td { padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.t tr:last-child td { border-bottom: 0; }
+.t .num { text-align: right; }
+.t td:first-child { font-weight: 500; }
+
+.tag { display: inline-block; padding: 4px 6px 3px; border: 1px solid currentColor; border-radius: 3px; font: 500 11px/1 var(--font-num); letter-spacing: .12em; text-transform: uppercase; vertical-align: .18em; white-space: nowrap; }
+.tag.e { color: var(--red); } .tag.i { color: var(--brass); } .tag.d { color: var(--muted); border-style: dashed; }
+
+.sw { display: inline-block; width: .8em; height: .8em; margin-right: 6px; border: 1px solid rgba(128,128,128,.45); border-radius: 2px; vertical-align: -.06em; }
+.pal { display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 12px 14px; }
+.pal > div { display: grid; gap: 4px; align-content: start; }
+.pal .chip { height: 44px; border: 1px solid rgba(128,128,128,.35); border-radius: 4px; }
+.pal b { font: 500 13.5px/1.25 var(--font-body); }
+.pal code { font-size: 12.5px; color: var(--muted); }
+
+.fig { margin: 0; display: grid; gap: 10px; align-content: start; justify-items: center; }
+.fig canvas, .fig svg { display: block; max-width: 100%; height: auto; }
+.cap { max-width: 60ch; font-size: var(--fs-small); line-height: 1.4; color: var(--muted); text-align: center; }
+.dg text { font-family: var(--font-body); font-size: 13px; fill: var(--ink); }
+.dg .m { fill: var(--muted); } .dg .b { fill: var(--brass); } .dg .r { fill: var(--red); }
+.dg .h { font-family: var(--font-num); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
+.dg .ln { stroke: var(--line-2); stroke-width: 1.2; fill: none; }
+.dg .lb { stroke: var(--brass); stroke-width: 1.4; fill: none; }
+.dg .lr { stroke: var(--red); stroke-width: 1.4; fill: none; }
+.dg .dash { stroke-dasharray: 5 5; }
+.dg .box { fill: var(--panel); stroke: var(--line-2); stroke-width: 1.2; }
+.dg .boxb { fill: var(--panel); stroke: var(--brass); stroke-width: 1.4; }
+.dg .ink { fill: var(--ink); } .dg .felt { fill: var(--felt); fill-opacity: .22; stroke: var(--felt); stroke-width: 1.4; }
+.dg .rail { fill: none; stroke: var(--brass); stroke-opacity: .55; stroke-width: 12; }
+
+.chain { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.chain > div { display: grid; gap: 4px; align-content: start; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 5px; background: var(--panel); }
+.chain b { font: 600 14.5px/1.2 var(--font-num); letter-spacing: .03em; }
+.chain b small { color: var(--brass); font-weight: 500; margin-right: 6px; }
+.chain span { font-size: 13.5px; line-height: 1.35; color: var(--muted); }
+
+/* ---------- capa ---------- */
+.cover { justify-content: space-between; }
+.cover .cols { flex: 1; align-items: center; align-content: center; }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 34px; }
+.facts div { display: grid; gap: 2px; }
+.facts b { font: 600 34px/1 var(--font-num); color: var(--brass); font-variant-numeric: tabular-nums; }
+.facts span { font: 500 12.5px/1.2 var(--font-num); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- HUD de exemplo (cena escura nos dois temas: é uma captura de tela simulada) ---------- */
+.hud { container-type: size; position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--line-2); border-radius: 5px; color: #EEE9DE; font-family: var(--font-num);
+  background: radial-gradient(85% 62% at 50% 100%, #2B7C34 0%, #1E6427 34%, #13421B 56%, rgba(9,12,8,0) 74%), linear-gradient(#0B0A07 0 44%, #0F140D 100%); }
+.hud * { text-shadow: 0 0 .6cqh rgba(0,0,0,.85), 0 .15cqh .2cqh rgba(0,0,0,.9); }
+.hud svg.scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hud .board { position: absolute; top: 3.9cqh; right: 5.5cqh; display: flex; gap: 1cqh; }
+.hud .cd { width: 4.9cqh; height: 7.3cqh; display: grid; justify-items: center; align-content: center; gap: .3cqh; border-radius: .5cqh; background: #E7E4D9; color: #161513; font: 600 2.9cqh/1 var(--font-num); text-shadow: none; }
+.hud .cd i { font-style: normal; font-size: 2.2cqh; text-shadow: none; }
+.hud .cd.r { color: #B3261E; }
+.hud .cd.bk { background: repeating-linear-gradient(45deg, #1F2A55 0 .42cqh, #F4F6F8 .42cqh .58cqh), #1F2A55; box-shadow: inset 0 0 0 .32cqh #F4F6F8, inset 0 0 0 .52cqh #1F2A55, inset 0 0 0 .62cqh #F4F6F8; }
+.hud .pot { position: absolute; right: 5.5cqh; top: 12.2cqh; display: flex; align-items: baseline; gap: 1.2cqh; }
+.hud .pot span { font: 400 2.1cqh/1 var(--font-num); }
+.hud .pot b { font: 700 3.6cqh/1 var(--font-num); }
+.hud .plist { position: absolute; left: 4.4cqh; bottom: 4.2cqh; display: grid; gap: 2.4cqh; }
+.hud .pl { display: grid; grid-template-columns: 6.4cqh auto; column-gap: 1.3cqh; align-items: center; }
+.hud .pt { width: 6.4cqh; height: 6.4cqh; border: 1px solid rgba(255,255,255,.2); background: radial-gradient(40% 46% at 50% 44%, #D9C49B 0 38%, #8B7250 62%, #2A2016 88%); }
+.hud .pl b { display: block; font: 700 3.4cqh/1 var(--font-num); }
+.hud .pl em { display: inline-flex; align-items: center; gap: .6cqh; margin-top: .5cqh; padding: .35cqh .8cqh; background: rgba(18,18,16,.62); font: 400 2cqh/1 var(--font-num); font-style: normal; }
+.hud .pl.f { opacity: .32; } .hud .pl.f .pt { visibility: hidden; }
+.hud .pl.me em { background: rgba(210,208,198,.34); }
+.hud .dbad { display: inline-grid; place-items: center; width: 2.1cqh; height: 2.1cqh; border: .2cqh solid currentColor; border-radius: 50%; font: 600 1.2cqh/1 var(--font-num); }
+.hud .acts { position: absolute; right: 4.4cqh; bottom: 5cqh; display: grid; gap: 1.6cqh; justify-items: end; }
+.hud .act { display: flex; align-items: center; gap: 1.1cqh; font: 700 2.5cqh/1 var(--font-display); font-variant: small-caps; letter-spacing: .02em; }
+.hud .k { display: grid; place-items: center; width: 2.9cqh; height: 2.9cqh; border-radius: 50%; background: #EEE9DE; color: #121210; font: 600 1.45cqh/1 var(--font-num); text-shadow: none; }
+.hud .k.h { background: #1C1C1A; color: #EEE9DE; box-shadow: 0 0 0 .25cqh #1C1C1A, 0 0 0 .5cqh #A9A89F; }
+.hud .sub { position: absolute; left: 50%; bottom: 5.4cqh; transform: translateX(-50%); font: 500 2.4cqh/1 var(--font-body); white-space: nowrap; }
+.hud .hand { position: absolute; left: 50%; bottom: -2.5cqh; width: 16cqh; height: 17cqh; transform: translateX(-50%); }
+.hud .hand .cd { position: absolute; width: 9cqh; height: 13cqh; font-size: 3cqh; align-content: start; justify-items: start; padding: 1cqh; box-shadow: 0 .5cqh 1.5cqh rgba(0,0,0,.5); }
+.hud .hand .cd:first-child { left: 0; top: 2cqh; transform: rotate(-9deg); }
+.hud .hand .cd:last-child { left: 6cqh; top: 0; transform: rotate(6deg); }
+
+/* ---------- barra e diálogos ---------- */
+.bar { position: fixed; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 10; transform: translateX(-50%);
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; max-width: calc(100% - 32px); padding: 5px;
+  border: 1px solid var(--line-2); border-radius: 8px; background: var(--panel); box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.bar button { padding: 9px 12px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); cursor: pointer; font: 500 12.5px/1 var(--font-num); letter-spacing: .09em; text-transform: uppercase; }
+.bar button:hover { border-color: var(--line-2); }
+.bar button.primary { background: var(--brass); color: var(--on-brass); }
+.bar .count { min-width: 70px; padding: 0 6px; font: 500 12.5px/1 var(--font-mono); color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+dialog { width: 100%; max-width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 1px solid var(--line-2); border-radius: 8px; background: var(--slide); color: var(--ink); }
+dialog::backdrop { background: rgba(0,0,0,.6); }
+.dlg-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.dlg-h h2 { margin: 0; font: 700 24px/1.1 var(--font-display); }
+.dlg-h div { display: flex; gap: 8px; align-items: center; }
+.dlg-b { padding: 18px 20px; overflow: auto; max-height: calc(100vh - 170px); }
+.btn { padding: 9px 14px; border: 1px solid var(--line-2); border-radius: 5px; background: transparent; cursor: pointer; font: 500 12.5px/1 var(--font-num); letter-spacing: .09em; text-transform: uppercase; }
+.btn.primary { background: var(--brass); border-color: var(--brass); color: var(--on-brass); }
+.toc { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.toc section { display: grid; gap: 2px; align-content: start; }
+.toc h3 { margin: 0 0 6px; font: 500 13px/1.2 var(--font-num); letter-spacing: .13em; text-transform: uppercase; color: var(--brass); }
+.toc button { display: flex; gap: 10px; width: 100%; padding: 6px 6px; border: 0; border-radius: 4px; background: none; cursor: pointer; text-align: left; font-size: 14px; line-height: 1.3; }
+.toc button:hover { background: var(--panel); }
+.toc button b { min-width: 2.4em; font-family: var(--font-display); font-weight: 800; }
+.toc button b.red { color: var(--red); }
+#promptText { width: 100%; height: 52vh; padding: 12px; resize: vertical; border: 1px solid var(--line-2); border-radius: 6px; background: var(--panel); color: var(--ink); font: 13px/1.5 var(--font-mono); }
+.status { font-size: 13px; color: var(--muted); }
+
+@media (max-width: 760px) {
+  .deck.doc { --fs-h1: 44px; --fs-h2: 27px; --fs-lede: 17px; --fs-body: 15.5px; --fs-table: 13.5px; --fs-small: 12.5px; }
+  .deck.doc .slide { padding: 74px 18px 56px; }
+  .deck.doc .idx.tl { top: 16px; left: 18px; }
+  .deck.doc .idx b { font-size: 26px; } .deck.doc .idx i { font-size: 21px; }
+  .deck.doc .meta { left: 18px; }
+  .deck.doc .cols, .deck.doc .c12, .deck.doc .c21, .deck.doc .c32, .deck.doc .c23 { grid-template-columns: minmax(0, 1fr); }
+  .deck.doc .pal { --n: 2 !important; }
+  .toc { grid-template-columns: 1fr 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .deck.present .slide.is-current { animation: none; } }
+@media print {
+  @page { size: 1600px 900px; margin: 0; }
+  body { background: var(--slide); }
+  .bar, dialog { display: none !important; }
+  .deck, .deck.present, .deck.doc { position: static; display: block; padding: 0; --fs-h1: 104px; --fs-h2: 46px; --fs-lede: 22px; --fs-body: 18.5px; --fs-table: 15.5px; --fs-small: 14px; --fs-kick: 14.5px; }
+  .deck .slide, .deck.present .slide, .deck.doc .slide { display: flex !important; position: relative; left: auto; top: auto; width: 1600px; height: 900px; transform: none; border: 0; border-radius: 0; box-shadow: none; overflow: hidden; break-after: page; padding: 58px 92px 64px 108px; }
+}
+</style>
+
+<main id="deck" class="deck doc">
+
+<section class="slide cover" data-suit="♠" data-rank="A" data-part="Direção" data-title="Capa">
+  <div class="cols c32">
+    <div class="stack">
+      <p class="kicker">Especificação de jogo · versão 1 · 28 de setembro de 2026</p>
+      <h1>Golden Spur Hold'em</h1>
+      <p class="lede">Poker Texas Hold'em No-Limit em 3D, em primeira pessoa, numa mesa de saloon de 1899: você, quatro oponentes com personalidade própria e um dealer da casa. Clima, câmera e HUD inspirados na mesa de poker de Red Dead Redemption 2.</p>
+      <p class="muted">Documento para o Claude Opus implementar num único <code>index.html</code>, com WebGL2 e JavaScript escritos do zero.</p>
+    </div>
+    <figure class="fig" data-md-skip><canvas id="cv-cover" width="560" height="500" aria-label="Verso das cartas, fichas e botão do dealer desenhados em código"></canvas></figure>
+  </div>
+  <div class="facts" data-md="Números-chave: 1 arquivo HTML · 0 bibliotecas · 6 lugares à mesa (você, 4 oponentes, dealer) · 7 valores de ficha · 8 fases de entrega.">
+    <div><b>1</b><span>arquivo HTML</span></div>
+    <div><b>0</b><span>bibliotecas</span></div>
+    <div><b>6</b><span>lugares à mesa</span></div>
+    <div><b>7</b><span>valores de ficha</span></div>
+    <div><b>8</b><span>fases de entrega</span></div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♠" data-rank="2" data-part="Direção" data-title="Como usar este documento">
+  <div class="sh"><p class="kicker">Direção</p><h2>Como usar este documento</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Para você</h3>
+      <ol>
+        <li>Clique em <strong>Copiar prompt</strong> na barra de baixo. Sai um Markdown com o prompt de abertura no topo e todas as seções.</li>
+        <li>Abra um chat novo com o Claude Opus, cole o texto e anexe as quatro imagens com estes nomes: <strong>Ref A</strong> verso das cartas, <strong>Ref B</strong> fichas coloridas, <strong>Ref C</strong> estojo de nogueira, <strong>Ref D</strong> mesa do RDR2.</li>
+        <li>Prefira o Claude Code dentro do repositório <code>discovery</code>, que edita o arquivo em etapas. No chat web, uma resposta única e gigante costuma travar.</li>
+        <li>Revise fase a fase (♣6). Libere a fase seguinte só quando os critérios de aceite da atual passarem.</li>
+      </ol>
+    </div>
+    <div class="stack">
+      <h3>Para o Claude</h3>
+      <ul>
+        <li>Leia tudo antes de escrever código. Os slides estão em quatro naipes: <strong>♠ Direção</strong>, <strong>♥ Arte e cena</strong>, <strong>♦ Jogo</strong> e <strong>♣ Engenharia</strong>.</li>
+        <li>Cada requisito tem prioridade: <span class="tag e">Essencial</span> <span class="tag i">Importante</span> <span class="tag d">Desejável</span>. Sem marcação, vale Essencial.</li>
+        <li>Números são alvos: medidas em metros, tempos em milissegundos, tamanhos de HUD em <code>vh</code> (1 vh = 1% da altura da janela).</li>
+        <li>As cores foram amostradas das referências. Onde houver lacuna, decida pela ordem do ♠5 e registre a decisão no topo do arquivo.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♠" data-rank="3" data-part="Direção" data-title="Visão e pilares">
+  <div class="sh"><p class="kicker">Direção</p><h2>Você se senta no Golden Spur Saloon, em 1899, e joga até sobrar um</h2></div>
+  <div class="body cols c32">
+    <div class="stack">
+      <p class="lede">Um dealer de viseira verde embaralha e distribui. Quatro jogadores, cada um com seu jeito de apostar, disputam os potes em dólares de 1899. A câmera fica nos seus olhos: você ergue as cartas para espiar, olha em volta e empurra fichas.</p>
+      <h3>Os primeiros 30 segundos</h3>
+      <ol>
+        <li>Tela de título com a mesa ao fundo. Você clica em “Sentar à mesa”.</li>
+        <li>A câmera assenta no seu lugar. O dealer embaralha e o botão DEALER desliza até um jogador.</li>
+        <li>Os blinds vão ao centro com estalo de fichas; as cartas voam em arco, uma por vez.</li>
+        <li>Você segura <kbd>Q</kbd>: as mãos sobem e mostram K♥ Q♦. O Coronel paga, Lucien aumenta, e a HUD avisa “Sua vez”.</li>
+      </ol>
+    </div>
+    <div class="stack">
+      <h3>Quatro pilares</h3>
+      <p><strong>Atmosfera de saloon.</strong> Poça de luz quente sobre o feltro, madeira escura, fundo que some no escuro. Câmera e HUD da Ref D.</p>
+      <p><strong>Poker de verdade.</strong> No-Limit completo, com side pots, raise mínimo e showdown corretos. IA com personalidade, sem trapaça.</p>
+      <p><strong>Objetos com peso.</strong> Cartas, fichas e estojo tirados das Refs A, B e C, com sombras de contato e animações críveis.</p>
+      <p><strong>Feito do zero.</strong> Um arquivo, WebGL2 puro, tudo gerado em código: texturas, modelos, personagens e sons.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♠" data-rank="4" data-part="Direção" data-title="Restrições técnicas">
+  <div class="sh"><p class="kicker">Direção</p><h2>Restrições que não se negociam</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Entrega</h3>
+      <ul>
+        <li>Um único <code>index.html</code>, começando com <code>&lt;!doctype html&gt;</code>, sem as tags <code>html</code>, <code>head</code> e <code>body</code> (convenção do repositório). Abre com duplo clique (<code>file://</code>) no Chrome, Edge e Firefox atuais.</li>
+        <li>WebGL2 obrigatório. Sem ele, mostre uma tela que explica o motivo. Extensões: <code>EXT_color_buffer_float</code> para HDR (se faltar, RGBA8 sem bloom) e <code>EXT_texture_filter_anisotropic</code> quando houver.</li>
+        <li>JavaScript moderno num único <code>&lt;script&gt;</code>, sem build e sem módulos externos. Worker só via Blob, se precisar.</li>
+        <li>Janela mínima de 1280 × 720; qualquer proporção entre 4:3 e 21:9.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Proibido e permitido</h3>
+      <ul>
+        <li><strong>Proibido:</strong> qualquer biblioteca (three.js, Babylon, gl-matrix, Howler, Tone.js, frameworks de UI, física pronta) e qualquer arquivo de imagem, modelo ou áudio, inclusive data-URI de imagem copiada das referências.</li>
+        <li><strong>Tudo procedural:</strong> texturas em Canvas 2D ou shader, geometria, personagens e sons em WebAudio.</li>
+        <li><strong>Permitido e opcional:</strong> Google Fonts (Rokkitt, Oswald, Libre Franklin), a única requisição de rede. Sem internet, cai para Georgia e Arial Narrow sem quebrar o layout.</li>
+        <li><strong>Idioma:</strong> interface e legendas em pt-BR. Textos do mundo (fichas, estojo, placas) em inglês de época, como no RDR2 localizado.</li>
+        <li><strong>Dinheiro:</strong> centavos inteiros, nunca float. Exibição “$3.05” e “65¢”.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♠" data-rank="5" data-part="Direção" data-title="Ordem de prioridades">
+  <div class="sh"><p class="kicker">Direção</p><h2>Quando dois requisitos brigarem, vence o de cima</h2></div>
+  <div class="body cols c32">
+    <ol class="stack">
+      <li><strong>Regras corretas</strong> e partida completa do início ao fim, sem travar nem perder fichas.</li>
+      <li><strong>60 quadros por segundo</strong> no notebook de referência (Intel Iris Xe, 1080p, qualidade Auto).</li>
+      <li><strong>Enquadramento, luz e HUD</strong> fiéis à Ref D.</li>
+      <li><strong>Cartas, fichas e estojo</strong> fiéis às Refs A, B e C.</li>
+      <li><strong>Personagens</strong> reconhecíveis pela silhueta e pelo figurino.</li>
+      <li><strong>Áudio</strong> procedural.</li>
+      <li><strong>Extras</strong>: tells, falas, olhar automático, fumaça, poeira na luz.</li>
+    </ol>
+    <div class="stack">
+      <h3>Regras de trabalho</h3>
+      <ul>
+        <li>Nunca quebre o build: toda fase termina com o arquivo abrindo e rodando.</li>
+        <li>Registre cada escolha no topo do arquivo como <code>// DECISÃO: … porque …</code>.</li>
+        <li>Menos coisas bem-acabadas valem mais que muitas cruas. Um Desejável só entra depois dos Essenciais da fase.</li>
+      </ul>
+      <h3>Marcadores</h3>
+      <ul>
+        <li><span class="tag e">Essencial</span> sem isso, a entrega falha.</li>
+        <li><span class="tag i">Importante</span> esperado na versão final.</li>
+        <li><span class="tag d">Desejável</span> se sobrar tempo e orçamento de quadro.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="A" data-part="Arte e cena" data-title="As quatro referências">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>O que tirar de cada referência, e o que deixar de fora</h2></div>
+  <div class="body cols c4">
+    <div class="stack">
+      <h3>Ref A · Verso das cartas</h3>
+      <p><strong>Pegar:</strong> a composição inteira, com moldura trançada, treliça, faixas cruzadas, mandala com espiral e medalhões. Duas cores: baralho azul em jogo, vermelho de reserva no estojo.</p>
+      <p class="small"><strong>Deixar de fora:</strong> a marca d'água do banco de imagens.</p>
+    </div>
+    <div class="stack">
+      <h3>Ref B · Fichas</h3>
+      <p><strong>Pegar:</strong> os sete valores e cores, oito insertos brancos na borda, coroa de pontas, texto em arco, quadrifólio preto com naipes e o valor escrito duas vezes.</p>
+      <p class="small"><strong>Deixar de fora:</strong> “THE ULTIMATE POKER CHIP”. No lugar, “GOLDEN SPUR SALOON” em cima e “EST. 1899 · HOLD'EM” embaixo.</p>
+    </div>
+    <div class="stack">
+      <h3>Ref C · Estojo do dealer</h3>
+      <p><strong>Pegar:</strong> caixa de nogueira com tampa aberta e dobradiças de ferro, canaletas com rolos de fichas, nichos de baralho, recorte redondo e o botão DEALER preto com aro de cobre.</p>
+      <p class="small"><strong>Deixar de fora:</strong> a marca e o cartão “Thank you”. O painel da tampa vira a placa do saloon.</p>
+    </div>
+    <div class="stack">
+      <h3>Ref D · Mesa do RDR2</h3>
+      <p><strong>Pegar:</strong> câmera em primeira pessoa, luz baixa e quente, feltro manchado, figurinos de 1899, layout da HUD e mãos segurando as cartas.</p>
+      <p class="small"><strong>Deixar de fora:</strong> logotipos, nomes e rostos dos personagens do jogo e as fontes proprietárias.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="2" data-part="Arte e cena" data-title="Paleta">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Paleta amostrada das referências</h2>
+    <p class="small">Mediana de regiões de cada imagem. Em cena a cor final depende da luz: calibre para o feltro iluminado cair entre <code>#1B6022</code> e <code>#216A27</code> depois do tone mapping.</p></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Mesa e salão · Ref D</h3>
+      <div class="pal">
+        <div><span class="chip" style="background:#216A27"></span><b>Feltro iluminado</b><code>#216A27</code></div>
+        <div><span class="chip" style="background:#1B6022"></span><b>Feltro meio-tom</b><code>#1B6022</code></div>
+        <div><span class="chip" style="background:#102E0E"></span><b>Feltro na sombra</b><code>#102E0E</code></div>
+        <div><span class="chip" style="background:#15120C"></span><b>Madeira do fundo</b><code>#15120C</code></div>
+        <div><span class="chip" style="background:#FFB46B"></span><b>Luz do lampião 2700 K</b><code>#FFB46B</code></div>
+      </div>
+      <h3>Estojo e metais · Ref C</h3>
+      <div class="pal">
+        <div><span class="chip" style="background:#9E7867"></span><b>Nogueira clara</b><code>#9E7867</code></div>
+        <div><span class="chip" style="background:#6B4636"></span><b>Nogueira média</b><code>#6B4636</code></div>
+        <div><span class="chip" style="background:#29150E"></span><b>Nogueira escura</b><code>#29150E</code></div>
+        <div><span class="chip" style="background:#2D2B2F"></span><b>Painel da tampa</b><code>#2D2B2F</code></div>
+        <div><span class="chip" style="background:#B07A4A"></span><b>Aro de cobre</b><code>#B07A4A</code></div>
+      </div>
+      <h3>Cartas · Refs A e D</h3>
+      <div class="pal">
+        <div><span class="chip" style="background:#F3EEDF"></span><b>Papel marfim</b><code>#F3EEDF</code></div>
+        <div><span class="chip" style="background:#B3261E"></span><b>Tinta vermelha</b><code>#B3261E</code></div>
+        <div><span class="chip" style="background:#1B1A17"></span><b>Tinta preta</b><code>#1B1A17</code></div>
+        <div><span class="chip" style="background:#1F2A55"></span><b>Verso azul</b><code>#1F2A55</code></div>
+        <div><span class="chip" style="background:#B0303F"></span><b>Verso vermelho</b><code>#B0303F</code></div>
+      </div>
+    </div>
+    <div class="stack">
+      <h3>Fichas · Ref B (corpo)</h3>
+      <div class="pal" style="--n:4">
+        <div><span class="chip" style="background:#A9A2A3"></span><b>1 · cinza</b><code>#A9A2A3</code></div>
+        <div><span class="chip" style="background:#C13C42"></span><b>5 · vermelha</b><code>#C13C42</code></div>
+        <div><span class="chip" style="background:#4E9A3E"></span><b>25 · verde</b><code>#4E9A3E</code></div>
+        <div><span class="chip" style="background:#25ABC9"></span><b>50 · azul-claro</b><code>#25ABC9</code></div>
+        <div><span class="chip" style="background:#141110"></span><b>100 · preta</b><code>#141110</code></div>
+        <div><span class="chip" style="background:#A34FB8"></span><b>500 · roxa</b><code>#A34FB8</code></div>
+        <div><span class="chip" style="background:#E9CF1F"></span><b>1000 · amarela</b><code>#E9CF1F</code></div>
+        <div><span class="chip" style="background:#FFF7F2"></span><b>Insertos brancos</b><code>#FFF7F2</code></div>
+      </div>
+      <h3>Figurinos · Ref D</h3>
+      <div class="pal">
+        <div><span class="chip" style="background:#2B4A8B"></span><b>Terno azul</b><code>#2B4A8B</code></div>
+        <div><span class="chip" style="background:#B89B45"></span><b>Gravata mostarda</b><code>#B89B45</code></div>
+        <div><span class="chip" style="background:#6E1F2A"></span><b>Vestido bordô</b><code>#6E1F2A</code></div>
+        <div><span class="chip" style="background:#2E7D4F"></span><b>Viseira verde</b><code>#2E7D4F</code></div>
+        <div><span class="chip" style="background:#8A7A5A"></span><b>Colete cáqui</b><code>#8A7A5A</code></div>
+      </div>
+      <h3>HUD</h3>
+      <div class="pal">
+        <div><span class="chip" style="background:#EEE9DE"></span><b>Texto</b><code>#EEE9DE</code></div>
+        <div><span class="chip" style="background:#E7E4D9"></span><b>Carta da HUD</b><code>#E7E4D9</code></div>
+        <div><span class="chip" style="background:rgba(18,18,16,.62)"></span><b>Etiqueta de status</b><code>#121210 · 62%</code></div>
+        <div><span class="chip" style="background:rgba(210,208,198,.34)"></span><b>Etiqueta ativa</b><code>#D2D0C6 · 34%</code></div>
+        <div><span class="chip" style="background:#A9A89F"></span><b>Anel de “segurar”</b><code>#A9A89F</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="3" data-part="Arte e cena" data-title="Mesa e salão">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>A mesa acende, o salão fica no escuro</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>A mesa</h3>
+      <ul>
+        <li>Tampo redondo, feltro com Ø 1,80 m, a 0,76 m do piso. Origem do mundo no centro do feltro, Y para cima; o piso fica em <code>y = -0.76</code>.</li>
+        <li>Aro de 0,90 m a 1,02 m de raio: couro marrom-escuro <span class="sw" style="background:#2A1A12"></span><code>#2A1A12</code> acolchoado, perfil arredondado de 5 cm, filete de latão no encontro com o feltro.</li>
+        <li>Feltro com fibra em ruído fino, manchas grandes de desgaste como na Ref D e brilho aveludado (sheen) em ângulos rasantes.</li>
+        <li>Saia de madeira escura e pé central. Seis cadeiras de madeira curvada, estilo café vienense.</li>
+        <li>Sobre a mesa: estojo do dealer, pilha de descarte, copo de uísque e cinzeiro com charuto do Coronel.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>O salão, atrás do dealer <span class="tag i">Importante</span></h3>
+      <ul>
+        <li>Mezanino com balaústres torneados (sólidos de revolução instanciados) e corrimão; escada em diagonal à esquerda.</li>
+        <li>Colunas de madeira entalhada com painéis de moldura dourada, como no fundo da Ref D.</li>
+        <li>Palmeira em vaso atrás do oponente da direita, com folhas em quads e alpha-test.</li>
+        <li>Balcão do bar à direita com espelho e garrafas (vidro com fresnel); piano vertical à esquerda.</li>
+        <li>Arandelas a óleo nas paredes (luzes de recorte) e janelas altas ao fundo com luz fria e fraca.</li>
+        <li>Piso de tábuas escuras; papel de parede damasco vinho-escuro acima do lambri.</li>
+        <li><span class="tag d">Desejável</span> dois ou três figurantes em silhueta no mezanino, parados em loop.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="4" data-part="Arte e cena" data-title="Planta da mesa">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Planta da mesa vista de cima</h2></div>
+  <div class="body cols c23">
+    <figure class="fig" data-md="Planta (vista de cima, câmera embaixo): feltro Ø 1,80 m, aro até 1,02 m. Assentos a 1,25 m do centro, a cada 60°: 6h Você, 8h Adelaide Harper, 10h Coronel Whitlock, 12h Silas Hart (dealer), 2h Lucien Marchand, 4h Edgar Pemberton. A ação corre no sentido horário visto de cima: Você → Adelaide → Coronel → Lucien → Edgar → Você (o dealer não joga).">
+      <svg class="dg" viewBox="0 0 600 600" width="560" height="560" role="img" aria-label="Planta da mesa com seis lugares">
+        <circle cx="300" cy="300" r="192" class="rail"/>
+        <circle cx="300" cy="300" r="180" class="felt"/>
+        <path d="M300 556 L89 302 M300 556 L511 302" class="lb dash"/>
+        <text x="312" y="540" class="b h">câmera</text>
+        <g>
+          <rect x="258.7" y="231.1" width="12.7" height="17.8" rx="1.5" class="ink"/>
+          <rect x="273.1" y="231.1" width="12.7" height="17.8" rx="1.5" class="ink"/>
+          <rect x="287.5" y="231.1" width="12.7" height="17.8" rx="1.5" class="ink"/>
+          <rect x="301.9" y="231.1" width="12.7" height="17.8" rx="1.5" class="ink" fill-opacity=".45"/>
+          <rect x="316.3" y="231.1" width="12.7" height="17.8" rx="1.5" class="ink" fill-opacity=".45"/>
+          <text x="300" y="224" text-anchor="middle" class="m">board</text>
+          <circle cx="300" cy="296" r="11" style="fill:var(--brass)"/>
+          <text x="318" y="300" class="m">pote</text>
+        </g>
+        <g transform="rotate(-20 352 172)"><rect x="308" y="144" width="88" height="56" rx="3" class="boxb"/><text x="352" y="176" text-anchor="middle" class="b h">estojo</text></g>
+        <rect x="262" y="161" width="12" height="16" rx="1.5" class="ink" fill-opacity=".45"/><text x="256" y="172" text-anchor="end" class="m">descarte</text>
+        <g class="seats">
+          <circle cx="300" cy="550" r="24" class="boxb"/><text x="300" y="590" text-anchor="middle">Você · 6h</text>
+          <circle cx="83.5" cy="425" r="24" class="box"/><text x="83.5" y="465" text-anchor="middle">Adelaide · 8h</text>
+          <circle cx="83.5" cy="175" r="24" class="box"/><text x="83.5" y="140" text-anchor="middle">Coronel · 10h</text>
+          <circle cx="300" cy="50" r="24" class="boxb"/><text x="300" y="18" text-anchor="middle">Silas, dealer · 12h</text>
+          <circle cx="516.5" cy="175" r="24" class="box"/><text x="516.5" y="140" text-anchor="middle">Lucien · 2h</text>
+          <circle cx="516.5" cy="425" r="24" class="box"/><text x="516.5" y="465" text-anchor="middle">Edgar · 4h</text>
+        </g>
+        <g style="fill:var(--ink);fill-opacity:.55">
+          <rect x="179" y="358" width="13" height="18" rx="1.5" transform="rotate(-60 185.6 366)"/>
+          <rect x="179" y="226" width="13" height="18" rx="1.5" transform="rotate(-120 185.6 234)"/>
+          <rect x="408" y="226" width="13" height="18" rx="1.5" transform="rotate(120 414.4 234)"/>
+          <rect x="408" y="358" width="13" height="18" rx="1.5" transform="rotate(60 414.4 366)"/>
+        </g>
+        <g class="lr" fill="none"><circle cx="300" cy="404" r="7"/><circle cx="210" cy="352" r="7"/><circle cx="210" cy="248" r="7"/><circle cx="390" cy="248" r="7"/><circle cx="390" cy="352" r="7"/></g>
+        <g style="fill:var(--red);fill-opacity:.8"><circle cx="332" cy="448" r="6"/><circle cx="187.8" cy="401.8" r="6"/><circle cx="155.8" cy="253.8" r="6"/><circle cx="412.2" cy="198.2" r="6"/><circle cx="444.2" cy="346.2" r="6"/></g>
+        <circle cx="210" cy="216" r="7" style="fill:var(--slide);stroke:var(--ink);stroke-width:1.5"/><text x="210" y="220" text-anchor="middle" style="font-size:8px;font-weight:700">D</text>
+      </svg>
+      <figcaption class="cap">Escala 1 m = 200 unidades. Retângulos: cartas. Círculos vermelhos vazados: aposta da rodada. Pontos vermelhos: pilhas. “D”: botão com o Coronel.</figcaption>
+    </figure>
+    <div class="stack">
+      <div class="tw"><table class="t">
+        <thead><tr><th>Elemento</th><th>Posição (m)</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td>Olhos do jogador</td><td><code>(0, 0.47, 1.28)</code></td><td>câmera; ver ♥5</td></tr>
+          <tr><td>Assentos</td><td>r = 1,25, a cada 60°</td><td>dealer em 12h, de banqueta alta</td></tr>
+          <tr><td>Board</td><td>fileira em <code>z = -0.30</code>, passo 0,072</td><td>topo das cartas para o dealer, leitura de pé para você</td></tr>
+          <tr><td>Pote</td><td><code>(0, 0, 0.02)</code></td><td>2 a 5 pilhas</td></tr>
+          <tr><td>Cartas do oponente</td><td>0,66·û</td><td>viradas, abertas 8°</td></tr>
+          <tr><td>Aposta da rodada</td><td>0,52·û</td><td>1 ou 2 pilhas</td></tr>
+          <tr><td>Pilhas</td><td>0,74·û + 0,16·dir</td><td>até 20 fichas por pilha</td></tr>
+          <tr><td>Botão DEALER</td><td>0,60·û − 0,14·dir</td><td>desliza 600 ms</td></tr>
+          <tr><td>Estojo</td><td><code>(0.26, 0, -0.64)</code>, yaw −20°</td><td>tampa aberta a 105°</td></tr>
+          <tr><td>Descarte</td><td><code>(-0.16, 0, -0.66)</code></td><td>queimadas e desistências</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">û aponta do centro para o assento; “dir” é a mão direita de quem está sentado. Coordenadas em código usam ponto decimal. A ação corre no sentido horário visto de cima: Você → Adelaide → Coronel → Lucien → Edgar.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="5" data-part="Arte e cena" data-title="Câmera e enquadramento">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Câmera nos olhos do jogador, enquadrada como a Ref D</h2></div>
+  <div class="body cols c32">
+    <figure class="fig" data-md="Guia de enquadramento (tela 16:9, conferir com ?guide=1, tolerância ±3%): olhos do dealer a 19–21% da altura; borda oposta do feltro a 44–47%; cabeças dos oponentes distantes a 16% e 84% da largura; mãos e cartas do jogador entram pela base, centradas. Zonas da HUD: canto superior direito (board e pote), canto inferior esquerdo (jogadores), canto inferior direito (ações), centro inferior (legenda).">
+      <svg class="dg" viewBox="0 0 800 450" width="800" height="450" role="img" aria-label="Guia de enquadramento 16 por 9">
+        <rect x="0.5" y="0.5" width="799" height="449" style="fill:var(--panel);stroke:var(--line-2)"/>
+        <path d="M-40 330 Q400 80 840 330 L840 450 L-40 450 Z" class="felt"/>
+        <g style="fill:var(--ink);fill-opacity:.16">
+          <circle cx="400" cy="92" r="19"/><rect x="352" y="116" width="96" height="110" rx="30"/>
+          <circle cx="128" cy="120" r="18"/><rect x="82" y="142" width="92" height="130" rx="30"/>
+          <circle cx="672" cy="120" r="18"/><rect x="626" y="142" width="92" height="130" rx="30"/>
+        </g>
+        <line x1="0" y1="90" x2="800" y2="90" class="lb dash"/><text x="12" y="84" class="b">olhos do dealer · 19–21%</text>
+        <line x1="0" y1="205" x2="800" y2="205" class="lb dash"/><text x="12" y="199" class="b">borda oposta do feltro · 44–47%</text>
+        <line x1="128" y1="0" x2="128" y2="450" class="ln dash"/><text x="134" y="36" class="m">16%</text>
+        <line x1="672" y1="0" x2="672" y2="450" class="ln dash"/><text x="636" y="36" class="m">84%</text>
+        <rect x="610" y="14" width="170" height="64" class="lr dash"/><text x="695" y="94" text-anchor="middle" class="r">board + pote</text>
+        <rect x="16" y="262" width="176" height="172" class="lr dash"/><text x="24" y="254" class="r">jogadores</text>
+        <rect x="596" y="300" width="188" height="134" class="lr dash"/><text x="604" y="292" class="r">ações</text>
+        <rect x="320" y="352" width="160" height="98" class="ln"/><text x="400" y="372" text-anchor="middle" class="m">mãos + cartas</text>
+        <text x="400" y="426" text-anchor="middle">Sua vez</text>
+      </svg>
+      <figcaption class="cap">Guia para conferir com <code>?guide=1</code>, que desenha estas linhas sobre o render. Tolerância de ±3%.</figcaption>
+    </figure>
+    <div class="stack">
+      <ul>
+        <li><strong>Repouso:</strong> olhos em <code>(0, 0.47, 1.28)</code>, FOV vertical 50°, yaw 0°, pitch −14°, near 0,05 m. Respiração de ±4 mm a 0,25 Hz.</li>
+        <li><strong>Parallax do mouse:</strong> o cursor puxa o olhar até yaw ±10° e pitch ±5°, com mola crítica (ω = 6).</li>
+        <li><strong>Olhar livre:</strong> botão direito + arrastar, ou analógico direito. Yaw ±70°, pitch de −40° a +15°. Ao soltar, volta em 600 ms.</li>
+        <li><strong>Suas cartas</strong> (segurar <kbd>Q</kbd> ou LT): as mãos sobem até 22 cm dos olhos, pitch −24°, foco em 0,32 m, 280 ms.</li>
+        <li><strong>Cartas comunitárias</strong> (segurar <kbd>E</kbd> ou RT): FOV 30°, pitch −32° mirando o board, foco em 1,6 m, 350 ms.</li>
+        <li><span class="tag d">Desejável</span> <strong>Olhar automático:</strong> quando alguém fora de quadro age, a cabeça gira até ±35° para ele e volta. Nunca na sua vez.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="6" data-part="Arte e cena" data-title="Luz e pós-processamento">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Uma poça de luz quente e tudo em volta afundando no escuro</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Luzes</h3>
+      <ul>
+        <li><strong>Principal:</strong> lampião de querosene com cúpula de lata, 1,0 m acima do centro. Spot de 2700 K <span class="sw" style="background:#FFB46B"></span><code>#FFB46B</code>, cone de 62° com penumbra de 18°: forte no centro, caindo perto do aro, como na Ref D. Cintila ±3% (ruído de 8 a 12 Hz).</li>
+        <li><strong>Sombras:</strong> shadow map do spot em 2048² (1024 na qualidade Baixa), PCF de 16 amostras Poisson com busca de bloqueador. Contato nítido sob fichas e cartas, contorno macio nas cabeças. Estáticos em cache, dinâmicos redesenhados.</li>
+        <li><strong>Preenchimento:</strong> hemisfério bem fraco (cima <code>#3A2F25</code>, baixo <code>#0D0A08</code>) para as sombras ficarem fundas.</li>
+        <li><strong>Recorte:</strong> três arandelas quentes atrás dos personagens, sem sombra, desenhando ombros e chapéus contra o fundo; uma luz fria de janela <code>#7D8FB3</code>, fraca, vinda do fundo à esquerda.</li>
+        <li><strong>Oclusão de contato:</strong> decalque escuro e macio sob pilhas, cartas, copo e estojo; AO assada nos vértices dos personagens.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Pós-processamento, nesta ordem</h3>
+      <ol>
+        <li>Cena em HDR (<code>RGBA16F</code>) com MSAA 4×.</li>
+        <li>Bloom: limiar 1,0 com joelho suave, 6 níveis, intensidade 0,06 (lampiões e reflexos de latão).</li>
+        <li>Profundidade de campo em meia resolução, 22 amostras em disco. Foco a 1,6 m em repouso e a 0,32 m em “Suas cartas”; o salão fica sempre um pouco desfocado.</li>
+        <li>Tone mapping ACES (ajuste de Hill) com exposição fixa.</li>
+        <li>Gradação: sombras para verde-petróleo, altas luzes para âmbar, saturação 0,9, contraste 1,08.</li>
+        <li>Vinheta forte (0,45, raio 0,78), grão de filme 0,035 trocando a 24 Hz, dithering antes da saída sRGB.</li>
+      </ol>
+      <p class="small"><span class="tag d">Desejável</span> aberração cromática de 0,6 px nas bordas, poeira no cone de luz (300 partículas), fumaça do charuto, cone volumétrico com ruído.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="7" data-part="Arte e cena" data-title="Cartas: verso">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Verso das cartas: a Ref A em nove camadas</h2></div>
+  <div class="body cols c23">
+    <figure class="fig" data-md-skip>
+      <canvas id="cv-backs" width="520" height="380" aria-label="Verso azul e verso vermelho desenhados em código"></canvas>
+      <figcaption class="cap">Ilustração gerada por código neste documento. É o alvo visual, não um asset.</figcaption>
+    </figure>
+    <div class="stack">
+      <p class="small">Carta de 63,5 × 88,9 mm, cantos com raio de 3,2 mm. Medidas em frações da largura L.</p>
+      <ol>
+        <li>Cartão branco <code>#F4F6F8</code> com margem de 0,065 L; a espessura (0,3 mm) também é branca.</li>
+        <li>Moldura de 0,05 L com corrente trançada branca entre dois filetes.</li>
+        <li>Campo com treliça de quadradinhos brancos arredondados (passo 0,045 L) e ponto de cor no centro.</li>
+        <li>Faixas arqueadas a 12% e 88% da altura, com pontas de flecha e bolinhas nas extremidades.</li>
+        <li>Medalhões em losango no topo e na base, rompendo a moldura, com roseta de 8 pétalas.</li>
+        <li>Medalhões laterais de 0,11 L na altura do centro, com roseta de 8 raios.</li>
+        <li>Duas faixas largas contornadas de branco que se cruzam acima e abaixo da mandala.</li>
+        <li>Mandala de Ø 0,78 L: anel duplo, 32 raios em forma de chave (haste e bolinha), 24 dentes para dentro.</li>
+        <li>Centro: espiral de 20 lâminas curvas girando no sentido anti-horário, com ponto branco.</li>
+      </ol>
+      <p>Gerar em Canvas 2D vetorial, 512 × 716 px, com mipmaps e anisotropia máxima. Azul <code>#1F2A55</code> para o baralho em jogo, vermelho <code>#B0303F</code> para a reserva no estojo. A HUD usa o mesmo desenho reduzido.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="8" data-part="Arte e cena" data-title="Cartas: frente">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Frente das cartas: papel marfim e gravura do século XIX</h2></div>
+  <div class="body cols c23">
+    <figure class="fig" data-md-skip>
+      <canvas id="cv-fronts" width="540" height="330" aria-label="Ás de espadas, sete de ouros e rei de copas desenhados em código"></canvas>
+      <figcaption class="cap">Ás de espadas, 7 de ouros e rei de copas. O retrato aqui é um esboço; no jogo, gravura com hachuras e aquarela.</figcaption>
+    </figure>
+    <div class="stack">
+      <ul>
+        <li>Papel <code>#F3EEDF</code> com grão sutil e bordas levemente escurecidas.</li>
+        <li>Índices no canto superior esquerdo e no inferior direito (girado 180°): valor em serifa grossa tipo Clarendon (Rokkitt 700, altura 0,15 L) e naipe abaixo (0,11 L).</li>
+        <li>Naipes são caminhos Bézier, nunca glifos de fonte. ♠ ♣ em <code>#1B1A17</code>; ♥ ♦ em <code>#B3261E</code>.</li>
+        <li>De 2 a 10, disposição clássica de pips em colunas a 0,28, 0,5 e 0,72 L; os da metade de baixo girados 180°.</li>
+        <li>J, Q e K: retrato único em vinheta oval, gravura aquarelada como na Ref D. K barbudo de casaca, Q de penteado alto empoado, J jovem de boné. Tudo gerado por código.</li>
+        <li>Ás de espadas ornamentado, com filigrana e “GOLDEN SPUR · 1899” em letra miúda.</li>
+        <li><code>TEXTURE_2D_ARRAY</code> com 54 camadas (52 faces e 2 versos) de 256 × 358 px. As duas cartas do jogador ganham textura própria de 1024 × 1432 px ao serem distribuídas.</li>
+        <li>Em 3D: caixa de 0,3 mm com 8 segmentos por canto, face acetinada (rugosidade 0,45). Na mão, dobra cilíndrica de raio 0,35 m no vertex shader.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="9" data-part="Arte e cena" data-title="Fichas">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Sete fichas da Ref B, valendo centavos de 1899</h2></div>
+  <div class="body">
+    <figure class="fig" data-md-skip><canvas id="cv-chips" width="1400" height="176" aria-label="Sete fichas de 1 a 1000 desenhadas em código"></canvas></figure>
+    <div class="cols">
+      <div class="stack">
+        <h3>Anatomia (R = raio)</h3>
+        <ul>
+          <li>Ø 39 mm, 3,3 mm de espessura, 48 segmentos, chanfro de 0,4 mm nas bordas.</li>
+          <li>Borda de 0,80 R a R com 8 insertos brancos de 20° a cada 45°. Os 4 cardeais têm um quadradinho da cor do corpo no meio. O inserto continua na lateral.</li>
+          <li>Rótulo até 0,78 R: cor do corpo mais clara com purpurina metálica. Coroa de 16 pontas entre 0,66 e 0,745 R, com losango na ponta.</li>
+          <li>Texto em arco a 0,57 R: “GOLDEN SPUR SALOON” em cima, “EST. 1899 · HOLD'EM” embaixo, girado.</li>
+          <li>Disco preto até 0,47 R com quadrifólio: ♠ e ♥ em cima, ♦ e ♣ embaixo; brilho em cruz no centro; valor à direita de pé e à esquerda girado 180° (Oswald 700, altura 0,2 R).</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <div class="tw"><table class="t">
+          <thead><tr><th>Ficha</th><th>Vale</th><th>Estoque inicial por jogador</th></tr></thead>
+          <tbody>
+            <tr><td><span class="sw" style="background:#A9A2A3"></span>1</td><td>1¢</td><td>0 (só como troco)</td></tr>
+            <tr><td><span class="sw" style="background:#C13C42"></span>5</td><td>5¢</td><td>20 fichas</td></tr>
+            <tr><td><span class="sw" style="background:#4E9A3E"></span>25</td><td>25¢</td><td>16 fichas</td></tr>
+            <tr><td><span class="sw" style="background:#25ABC9"></span>50</td><td>50¢</td><td>2 fichas</td></tr>
+            <tr><td><span class="sw" style="background:#141110"></span>100</td><td>$1</td><td>4 fichas</td></tr>
+            <tr><td><span class="sw" style="background:#A34FB8"></span>500</td><td>$5</td><td>0</td></tr>
+            <tr><td><span class="sw" style="background:#E9CF1F"></span>1000</td><td>$10</td><td>0 · total $10.00 em 42 fichas</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small">A pilha é função pura do valor: decomposição gulosa, depois troca fichas grandes por menores até ~30 fichas, sem passar de 20 por pilha. Cada ficha gira 0–360°, desloca ±0,4 mm e inclina 0,3°, como se empilhada à mão.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="10" data-part="Arte e cena" data-title="Estojo do dealer e botão">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>O estojo de nogueira da Ref C e o botão DEALER</h2></div>
+  <div class="body cols c23">
+    <figure class="fig" data-md-skip>
+      <canvas id="cv-case" width="560" height="470" aria-label="Estojo de nogueira aberto visto de cima e botão DEALER"></canvas>
+      <figcaption class="cap">Vista de cima, tampa aberta para trás. Ilustração gerada por código.</figcaption>
+    </figure>
+    <div class="stack">
+      <h3>Estojo</h3>
+      <ul>
+        <li>Caixa de 44 × 28 × 7 cm, paredes de 1,2 cm. Nogueira com veios procedurais (ruído alongado e anéis) nos tons <code>#9E7867</code>, <code>#6B4636</code> e <code>#29150E</code>; verniz acetinado (rugosidade 0,35).</li>
+        <li>Tampa de 3 cm presa no lado do dealer por duas dobradiças de ferro preto, aberta a 105°. O painel interno fica de frente para você: tecido <code>#2D2B2F</code> com “Golden Spur Saloon” em cursiva dourada e “Est. 1899 · House of fair play” em letra miúda.</li>
+        <li>Bandeja: à esquerda, dois nichos de baralho de 6,8 × 9,4 cm (em cima o baralho vermelho de reserva; embaixo o azul descansa entre as mãos) e um recorte redondo de Ø 6 cm. À direita, 7 canaletas em U de 4,2 cm com rolos de 20 a 40 fichas deitadas, uma cor por canaleta, de 1 a 1000.</li>
+        <li>As fichas do estojo são o banco da casa: decorativas, fora das pilhas dos jogadores.</li>
+      </ul>
+      <h3>Botão DEALER</h3>
+      <ul>
+        <li>Ø 50 × 6 mm, esmalte preto <code>#0F0F0D</code>, aro de cobre <code>#B07A4A</code> de 2 mm com reflexo metálico (rugosidade 0,25).</li>
+        <li>“DEALER” em caixa-alta condensada fina, branca, inclinada −22°, entre dois filetes diagonais.</li>
+        <li>Desliza até o próximo jogador a cada mão: 600 ms, ease-in-out, com um leve giro.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="J" data-part="Arte e cena" data-title="Elenco">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Cinco personagens, cada um legível pela silhueta</h2></div>
+  <div class="body">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Lugar</th><th>Personagem</th><th>Figurino e traços</th><th>Estilo à mesa</th></tr></thead>
+      <tbody>
+        <tr><td>10h</td><td>Coronel Ambrose Whitlock<br><span class="small">veterano rico · Ref D, à esquerda</span></td><td>Cartola preta, cabelo branco nas têmporas, bigode de morsa branco, óculos redondos de aro fino, sobrecasaca marrom-escura, colete cáqui <span class="sw" style="background:#8A7A5A"></span>, colarinho alto com gravata-borboleta preta fina, charuto.</td><td>Pedra: entra em poucas mãos e quase nunca blefa.</td></tr>
+        <tr><td>12h</td><td>Silas Hart<br><span class="small">dealer da casa</span></td><td>Viseira de celuloide verde translúcida <span class="sw" style="background:#2E7D4F"></span>, camisa branca com ligas vermelhas nas mangas, colete preto com corrente de relógio, gravata de cordão, bigode aparado, cabelo com brilhantina. Banqueta alta.</td><td>Não joga. Calmo e preciso; anuncia “Flop”, “Turn”, “River” e o vencedor.</td></tr>
+        <tr><td>2h</td><td>Lucien Marchand<br><span class="small">profissional · Ref D, à direita</span></td><td>Sobrecasaca preta, colete cinza-chumbo, camisa creme, plastrão mostarda <span class="sw" style="background:#B89B45"></span>, cabelo preto penteado para trás, bigode preto grosso, pele morena, anel de ouro. Apoia o punho na mesa.</td><td>Tubarão: sólido e agressivo, se adapta ao seu estilo.</td></tr>
+        <tr><td>4h</td><td>Edgar Pemberton<br><span class="small">banqueiro · Ref D, ao centro</span></td><td>Terno azul-royal <span class="sw" style="background:#2B4A8B"></span>, colete azul-marinho trespassado com botões de latão, camisa azul-clara, gravata dourada, cabelo castanho repartido, bigode fino.</td><td>Paga quase tudo e raramente aumenta.</td></tr>
+        <tr><td>8h</td><td>Adelaide Harper<br><span class="small">jogadora de Nova Orleans</span></td><td>Vestido bordô <span class="sw" style="background:#6E1F2A"></span> de gola alta com renda preta, camafeu, cabelo castanho-avermelhado em coque, chapeuzinho preto com pena, luvas de renda.</td><td>Solta e agressiva: pressiona e blefa com frequência.</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">Nomes fictícios; nenhum personagem do RDR2 é reproduzido. Sem girar a cabeça você vê Coronel, Silas e Lucien, o mesmo trio de silhuetas da Ref D. Suas mãos em primeira pessoa: manga de casaco marrom e punho de camisa branco.</p>
+  </div>
+</section>
+
+<section class="slide" data-suit="♥" data-rank="Q" data-part="Arte e cena" data-title="Áudio procedural">
+  <div class="sh"><p class="kicker">Arte e cena</p><h2>Todo som sintetizado em WebAudio, sem arquivos</h2></div>
+  <div class="body">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Som</th><th>Receita</th><th>Quando</th></tr></thead>
+      <tbody>
+        <tr><td>Estalo de ficha</td><td>ruído de 3 ms em 3 filtros passa-banda (2,1 / 3,4 / 5,2 kHz, Q 9), decaimento de 45 a 90 ms</td><td>cada ficha que pousa; pilha = 3 a 8 estalos a cada 18–40 ms</td></tr>
+        <tr><td>Fichas deslizando</td><td>ruído passa-baixa de 300 ms com envelope suave</td><td>apostas indo ao pote, pote indo ao vencedor</td></tr>
+        <tr><td>Carta distribuída</td><td>ruído passa-alta de 2,5 kHz por 25 ms e batida grave de 15 ms ao pousar</td><td>cada carta</td></tr>
+        <tr><td>Carta virando</td><td>varredura passa-banda de 1,5 a 4 kHz em 90 ms</td><td>flop, turn, river e showdown</td></tr>
+        <tr><td>Embaralhar</td><td>50 microestalos acelerando em 1,1 s, depois “ponte” de ruído modulado de 0,4 s</td><td>início da mão</td></tr>
+        <tr><td>Ambiente</td><td>ruído marrom passa-baixa 350 Hz (−38 dB), murmúrio de salão (ruído 250–1200 Hz com modulação lenta), copo tilintando a cada 8–25 s</td><td>contínuo</td></tr>
+        <tr><td>Piano distante <span class="tag i">Importante</span></td><td>ragtime procedural a 96 BPM (I–VI–II–V em Fá, baixo em stride), 2 osciladores por nota desafinados ±7 cents, passa-baixa de 1,8 kHz, reverb por convolução com resposta gerada (ruído com decaimento de 1,8 s), −24 dB</td><td>contínuo, pausável</td></tr>
+        <tr><td>Interface</td><td>tique de madeira: seno de 900 Hz por 30 ms com ruído</td><td>menus</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">Compressor no master; volumes Geral, Ambiente e Efeitos; <kbd>M</kbd> silencia. O áudio só começa depois do primeiro clique. Falas aparecem só como legenda. <span class="tag d">Desejável</span> opção de voz por SpeechSynthesis em pt-BR, com tom diferente por personagem.</p>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="A" data-part="Jogo" data-title="Regras e formato">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Texas Hold'em No-Limit, em formato Sit &amp; Go de cinco</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Formato</h3>
+      <ul>
+        <li>Você e quatro IAs começam com $10.00 (1000¢). A partida acaba quando alguém fica com todas as fichas.</li>
+        <li>Blinds sobem a cada 10 mãos: 5/10¢ → 10/20 → 15/30 → 25/50 → 50/100 → 100/200 → 200/400. Sem ante.</li>
+        <li>O botão DEALER marca a posição; Silas só distribui. O botão anda no sentido horário até o próximo jogador ativo (botão móvel, sem “dead button”).</li>
+        <li>Small blind à esquerda do botão, big blind à esquerda do small. No pré-flop abre quem está à esquerda do big blind; do flop em diante, o primeiro ativo à esquerda do botão.</li>
+        <li>Heads-up: o botão paga o small blind, age primeiro no pré-flop e por último depois dele.</li>
+        <li>Quem zera ao fim da mão é eliminado: levanta, toca o chapéu e sai em 1 s; a cadeira fica vazia.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Uma mão</h3>
+      <ol>
+        <li>Blinds vão para a linha de aposta.</li>
+        <li>Duas cartas fechadas para cada um, uma por vez, a partir do small blind.</li>
+        <li>Apostas do pré-flop.</li>
+        <li>Queima uma carta e abre o flop (3 cartas). Apostas.</li>
+        <li>Queima e abre o turn. Apostas.</li>
+        <li>Queima e abre o river. Apostas.</li>
+        <li>Showdown: vence o melhor jogo de 5 entre as 7 cartas de cada um.</li>
+      </ol>
+      <p class="small"><strong>Glossário:</strong> board = cartas comunitárias; side pot = pote lateral; all-in = apostar tudo; queimar = descartar a carta de cima sem mostrar; muck = pilha de descarte; kicker = carta que desempata.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="2" data-part="Jogo" data-title="Fluxo da mão">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Fluxo da mão como máquina de estados</h2></div>
+  <div class="body">
+    <figure class="fig" data-md="Máquina de estados: Início da mão → Move botão, embaralha e cobra blinds → 2 cartas fechadas por jogador → Rodada de apostas ⇄ Queima e revela board (flop 3, turn 1, river 1). Depois das apostas do river → Showdown → Pagar potes e side pots → Recolher e eliminar quem zerou → próxima mão (volta ao início) ou Fim de jogo quando sobra um. Atalhos: se só resta um ativo, vai direto a Pagar potes sem mostrar cartas; se ninguém mais pode apostar (all-in), revela as mãos, corre o board com 1,2 s por carta e segue para o Showdown.">
+      <svg class="dg" viewBox="0 0 1400 240" width="1400" height="240" role="img" aria-label="Diagrama do fluxo de uma mão">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" style="fill:var(--brass)"/></marker></defs>
+        <rect x="10" y="20" width="170" height="58" rx="6" class="box"/><text x="95" y="54" text-anchor="middle">Início da mão</text>
+        <rect x="215" y="20" width="215" height="58" rx="6" class="box"/><text x="322" y="44" text-anchor="middle">Move botão, embaralha</text><text x="322" y="63" text-anchor="middle" class="m">cobra blinds</text>
+        <rect x="465" y="20" width="215" height="58" rx="6" class="box"/><text x="572" y="44" text-anchor="middle">Cartas fechadas</text><text x="572" y="63" text-anchor="middle" class="m">2 por jogador</text>
+        <rect x="715" y="20" width="200" height="58" rx="6" class="boxb"/><text x="815" y="54" text-anchor="middle">Rodada de apostas</text>
+        <rect x="1000" y="20" width="230" height="58" rx="6" class="box"/><text x="1115" y="44" text-anchor="middle">Queima e revela board</text><text x="1115" y="63" text-anchor="middle" class="m">flop 3 · turn 1 · river 1</text>
+        <rect x="715" y="160" width="200" height="58" rx="6" class="boxb"/><text x="815" y="194" text-anchor="middle">Showdown</text>
+        <rect x="465" y="160" width="215" height="58" rx="6" class="box"/><text x="572" y="194" text-anchor="middle">Pagar potes e side pots</text>
+        <rect x="215" y="160" width="215" height="58" rx="6" class="box"/><text x="322" y="184" text-anchor="middle">Recolher cartas</text><text x="322" y="203" text-anchor="middle" class="m">elimina quem zerou</text>
+        <rect x="10" y="160" width="170" height="58" rx="6" class="box"/><text x="95" y="194" text-anchor="middle">Fim de jogo</text>
+        <g class="lb" marker-end="url(#ar)">
+          <path d="M180 49 H213"/><path d="M430 49 H463"/><path d="M680 49 H713"/>
+          <path d="M915 38 H998"/><path d="M1000 62 H917"/>
+          <path d="M815 78 V158"/><path d="M715 189 H682"/><path d="M465 189 H432"/><path d="M215 189 H182"/>
+          <path d="M322 160 V118 H95 V80"/>
+        </g>
+        <text x="957" y="32" text-anchor="middle" class="m">próxima rua</text>
+        <text x="825" y="124" class="m">depois do river</text>
+        <text x="200" y="112" text-anchor="middle" class="m">próxima mão</text>
+        <text x="198" y="236" text-anchor="middle" class="m">sobrou 1</text>
+      </svg>
+    </figure>
+    <div class="cols">
+      <div class="stack">
+        <h3>Atalhos</h3>
+        <ul>
+          <li>Só resta um ativo: vai direto a “Pagar potes”, sem mostrar cartas.</li>
+          <li>Ninguém mais pode apostar (all-in): revela todas as mãos, corre o board com 1,2 s de pausa por carta e segue para o Showdown.</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <h3>Motor separado da apresentação</h3>
+        <ul>
+          <li>O motor de poker é puro (sem DOM, sem GL), determinístico pela semente, e emite eventos: <code>blind</code>, <code>deal</code>, <code>act</code>, <code>burn</code>, <code>board</code>, <code>reveal</code>, <code>award</code>, <code>eliminate</code>.</li>
+          <li>O Diretor toca cada evento como animação (<code>await</code>) e só depois pede a próxima decisão à IA ou a você. Mesma <code>?seed=</code>, mesma sequência de eventos.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="3" data-part="Jogo" data-title="Apostas e potes">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Apostas, all-in e potes laterais sem atalhos</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Regras de aposta</h3>
+      <ul>
+        <li>Aposta mínima = big blind. O aumento mínimo é o tamanho do último aumento completo da rodada, nunca menor que o BB. A HUD mostra o total: “Aumentar para $1.35”.</li>
+        <li>All-in menor que um aumento completo não reabre a ação para quem já agiu desde o último aumento completo: esses só pagam ou desistem.</li>
+        <li>A rodada termina quando todos os ativos com fichas agiram desde o último aumento completo e igualaram a aposta, ou quando só resta um.</li>
+        <li>Aposta que ninguém pagou volta ao dono antes de dividir o pote.</li>
+        <li>Desistir é sempre permitido. Se passar é de graça, desistir exige segurar <kbd>F</kbd> por 0,5 s.</li>
+        <li>Mostra primeiro quem fez a última aposta do river; sem aposta, o primeiro ativo à esquerda do botão. Simplificação: todas as mãos restantes são reveladas.</li>
+        <li>Empate divide em partes iguais; os centavos que sobram vão para o primeiro vencedor à esquerda do botão.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Exemplo de side pot</h3>
+      <p>Contribuições na mão: Adelaide 100 (all-in), Coronel 300 (all-in), Lucien 300, Edgar 10 (desistiu).</p>
+      <div class="tw"><table class="t">
+        <thead><tr><th>Pote</th><th>Camada</th><th class="num">Soma</th><th>Quem concorre</th></tr></thead>
+        <tbody>
+          <tr><td>Principal</td><td>0 → 100</td><td class="num">100 + 100 + 100 + 10 = 310</td><td>Adelaide, Coronel, Lucien</td></tr>
+          <tr><td>Lateral 1</td><td>100 → 300</td><td class="num">200 + 200 = 400</td><td>Coronel, Lucien</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Total 710 = soma das contribuições. As fichas de quem desistiu ficam nos potes, mas ele não concorre. Cada pote é resolvido separadamente, do lateral mais alto ao principal.</p>
+      <h3>Exemplo de aumento incompleto</h3>
+      <p class="small">BB 10. Adelaide aumenta para 30 (aumento de 20). Coronel vai all-in com 45 (aumento de 15, incompleto). Quando a ação volta para Adelaide, ela só paga 15 ou desiste. Lucien, que ainda não agiu, pode aumentar para no mínimo 65.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="4" data-part="Jogo" data-title="Ranking e avaliador">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Ranking das mãos e o avaliador de 7 cartas</h2></div>
+  <div class="body cols">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Categoria</th><th>Exemplo</th><th>Texto na tela</th></tr></thead>
+      <tbody>
+        <tr><td>Royal flush</td><td>A♠ K♠ Q♠ J♠ 10♠</td><td>Royal flush</td></tr>
+        <tr><td>Straight flush</td><td>9♥ 8♥ 7♥ 6♥ 5♥</td><td>Straight flush até o Nove</td></tr>
+        <tr><td>Quadra</td><td>7♣ 7♦ 7♥ 7♠ K♦</td><td>Quadra de Setes</td></tr>
+        <tr><td>Full house</td><td>K♣ K♦ K♥ 6♠ 6♦</td><td>Full house, Reis sobre Seis</td></tr>
+        <tr><td>Flush</td><td>A♦ J♦ 8♦ 4♦ 2♦</td><td>Flush de Ouros, Ás alto</td></tr>
+        <tr><td>Sequência</td><td>10♣ 9♦ 8♥ 7♠ 6♣</td><td>Sequência até o Dez</td></tr>
+        <tr><td>Trinca</td><td>Q♠ Q♥ Q♦ 9♣ 3♥</td><td>Trinca de Damas</td></tr>
+        <tr><td>Dois pares</td><td>A♣ A♥ 7♦ 7♠ K♣</td><td>Dois pares, Ases e Setes</td></tr>
+        <tr><td>Par</td><td>6♣ 6♠ A♦ J♥ 4♣</td><td>Par de Seis</td></tr>
+        <tr><td>Carta alta</td><td>A♥ Q♣ 9♦ 6♠ 3♣</td><td>Ás alto</td></tr>
+      </tbody>
+    </table></div>
+    <div class="stack">
+      <ul>
+        <li>Carta = inteiro de 0 a 51: valor <code>c &gt;&gt; 2</code> (0 = 2 … 12 = Ás), naipe <code>c &amp; 3</code> (♣ ♦ ♥ ♠).</li>
+        <li><code>eval7(cartas)</code> devolve um inteiro comparável: categoria nos bits altos e os 5 valores decisivos em 4 bits cada. Maior vence; igual empata.</li>
+        <li>Histograma de valores, contagem por naipe e máscara de 13 bits para sequências, com a roda A-2-3-4-5. Sem alocação no laço: 2 milhões de avaliações por segundo ou mais.</li>
+      </ul>
+      <h3>Casos obrigatórios no <code>?test=1</code></h3>
+      <ul class="small">
+        <li>Roda 5-4-3-2-A perde para 6-5-4-3-2.</li>
+        <li>Flush de K alto vence sequência até o Ás.</li>
+        <li>K-K-K-6-6 vence 6-6-6-K-K.</li>
+        <li>A-A-7-7 com kicker K vence A-A-7-7 com kicker Q.</li>
+        <li>Board A-A-K-K-Q joga para os dois: empate.</li>
+        <li>Quadra na mesa: decide o kicker de fora.</li>
+        <li>Seis cartas do mesmo naipe: valem as 5 maiores.</li>
+        <li>Duas trincas nas 7 cartas formam full house.</li>
+        <li>Três pares: os dois maiores e o melhor kicker.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="5" data-part="Jogo" data-title="Inteligência dos oponentes">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Quatro oponentes que pensam em equidade e jogam com personalidade</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Como cada decisão é tomada</h3>
+      <ol>
+        <li><strong>Força:</strong> no pré-flop, tabela de equidade das 169 mãos iniciais contra 1 a 4 oponentes, calculada por Monte Carlo na carga (2000 amostras por célula). Do flop em diante, Monte Carlo contra mãos aleatórias dos ativos: 500 amostras, até 1500 perto de um limiar, fatiado em no máximo 3 ms por quadro.</li>
+        <li><strong>Ajustes:</strong> +0,03 em posição tardia; bônus de projeto com 8 ou mais outs (semiblefe); −0,02 por oponente extra.</li>
+        <li><strong>Escolha:</strong> pot odds = a pagar ÷ (pote + a pagar). Equidade acima do limiar de aumento: aposta de valor. Acima de pot odds + margem: paga ou passa. Abaixo: blefa com a chance da persona se ninguém mostrou força e há no máximo 2 oponentes; senão passa ou desiste.</li>
+        <li><strong>Pré-flop por faixa:</strong> entra se a mão estiver no percentil do VPIP; aumenta se estiver no do PFR.</li>
+        <li><strong>Tamanho:</strong> sempre legal e múltiplo de 5¢. All-in quando o stack efetivo for menor que 1,5 pote e a mão for forte.</li>
+        <li><strong>Tempo:</strong> 0,7 s mais até 1,7 s conforme a dificuldade, ±25%. Passar leva 0,4 a 0,8 s.</li>
+      </ol>
+    </div>
+    <div class="stack">
+      <div class="tw"><table class="t">
+        <thead><tr><th>Persona</th><th class="num">VPIP</th><th class="num">PFR</th><th class="num">Agressão</th><th class="num">Blefe</th><th>Tamanho</th><th class="num">Margem</th></tr></thead>
+        <tbody>
+          <tr><td>Coronel · pedra</td><td class="num">14%</td><td class="num">7%</td><td class="num">1,1</td><td class="num">3%</td><td>½ pote</td><td class="num">+0,08</td></tr>
+          <tr><td>Lucien · tubarão</td><td class="num">22%</td><td class="num">18%</td><td class="num">2,6</td><td class="num">12%</td><td>⅔ pote</td><td class="num">+0,02</td></tr>
+          <tr><td>Edgar · paga tudo</td><td class="num">46%</td><td class="num">9%</td><td class="num">0,7</td><td class="num">6%</td><td>½ pote</td><td class="num">−0,06</td></tr>
+          <tr><td>Adelaide · solta</td><td class="num">38%</td><td class="num">26%</td><td class="num">3,0</td><td class="num">22%</td><td>¾ a 1¼ pote</td><td class="num">0,00</td></tr>
+        </tbody>
+      </table></div>
+      <ul>
+        <li>Lucien se adapta: se você desiste a mais de 60% das apostas, ele blefa 1,6× mais; se você paga muito, aposta valor mais fino e blefa menos.</li>
+        <li>A IA nunca vê cartas fechadas alheias nem o baralho. Toda aleatoriedade vem do PRNG com semente.</li>
+        <li><span class="tag i">Importante</span> Falas: 6 a 10 por persona e situação (aumenta, paga, desiste, vence, perde pote grande), no máximo uma a cada 20 s por personagem e nunca na sua vez. Tom: Coronel “Isso é pólvora demais para um velho.”; Adelaide “Aumento. Vai fugir, querido?”</li>
+        <li><span class="tag d">Desejável</span> Tells com 70% de acerto: o Coronel ajeita os óculos quando está forte; Edgar tamborila quando está fraco; Adelaide fica imóvel quando blefa; Lucien não tem tell.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="6" data-part="Jogo" data-title="Coreografia e tempos">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Coreografia do dealer e dos jogadores, em milissegundos</h2></div>
+  <div class="body cols c32">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Ação</th><th>Quem</th><th class="num">Duração</th><th>Como</th></tr></thead>
+      <tbody>
+        <tr><td>Embaralhar</td><td>Silas</td><td class="num">1600</td><td>riffle: duas metades se intercalam com atraso escalonado, depois a ponte</td></tr>
+        <tr><td>Mover o botão</td><td>Silas</td><td class="num">600</td><td>desliza e gira de leve até o próximo jogador</td></tr>
+        <tr><td>Blinds</td><td>jogadores</td><td class="num">400</td><td>fichas saem da pilha até a linha de aposta</td></tr>
+        <tr><td>Dar carta</td><td>Silas</td><td class="num">260 + 70</td><td>arco com pico de 6 cm, gira 360° ± 90°, pousa e escorrega 2 cm; 70 ms entre cartas</td></tr>
+        <tr><td>Queimar</td><td>Silas</td><td class="num">250</td><td>carta de cima vai virada para o descarte</td></tr>
+        <tr><td>Flop</td><td>Silas</td><td class="num">900</td><td>3 cartas espalhadas viradas, depois viradas juntas num gesto</td></tr>
+        <tr><td>Turn e river</td><td>Silas</td><td class="num">500</td><td>queima, dá e vira</td></tr>
+        <tr><td>Apostar ou pagar</td><td>jogador</td><td class="num">350</td><td>a mão pega as fichas, leva até a linha e solta</td></tr>
+        <tr><td>Passar</td><td>jogador</td><td class="num">300</td><td>dois toques de dedo na mesa</td></tr>
+        <tr><td>Desistir</td><td>jogador</td><td class="num">400</td><td>empurra as cartas viradas para o centro</td></tr>
+        <tr><td>All-in</td><td>jogador</td><td class="num">700</td><td>empurra as pilhas com as duas mãos</td></tr>
+        <tr><td>Recolher apostas</td><td>Silas</td><td class="num">400 + 60</td><td>varre cada aposta para o pote, 60 ms entre jogadores</td></tr>
+        <tr><td>Showdown</td><td>jogadores</td><td class="num">600</td><td>por mão; as 5 cartas vencedoras sobem 3 mm com brilho quente</td></tr>
+        <tr><td>Pagar o pote</td><td>Silas</td><td class="num">700</td><td>side pots se dividem em montes antes de deslizar</td></tr>
+        <tr><td>Recolher cartas</td><td>Silas</td><td class="num">500</td><td>tudo volta ao dealer e vira baralho</td></tr>
+      </tbody>
+    </table></div>
+    <div class="stack">
+      <h3>Regras de movimento</h3>
+      <ul>
+        <li>Nada atravessa nada: cartas empilham com 0,3 mm de folga; fichas pousam com um quique de 2 mm (ease-out-back) e a pilha balança de leve.</li>
+        <li>Trajetórias em Bézier quadrática; rotação por quaternion com slerp.</li>
+        <li>As mãos dos personagens seguem as fichas e cartas com IK de dois ossos (♣3).</li>
+        <li>Velocidade 1×, 1,5× ou 2× nas opções; <kbd>Espaço</kbd> acelera 4× enquanto estiver pressionado.</li>
+        <li>Enquanto um evento anima, a lógica espera; nada de estado visual adiantado ou atrasado em relação ao motor.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="7" data-part="Jogo" data-title="HUD">
+  <div class="sh"><p class="kicker">Jogo</p><h2>HUD no estilo da Ref D, em português</h2></div>
+  <div class="body cols c32">
+    <figure class="fig" data-md="Simulação da HUD (tela 16:9): no canto superior direito, cinco cartas pequenas (6♣ 6♠ 4♠ abertas e duas com o verso azul) e, abaixo, “Pote $2.70”. No canto inferior esquerdo, a lista de jogadores com retrato, valor e status: $3.35 Desistiu, $12.80 Desistiu (com o botão D), $1.05 Desistiu, $3.05 “65¢, Aposta” e, por último, você: $6.45 “0¢, Sua vez…”. No canto inferior direito, as ações alinhadas à direita com glifo: Suas cartas (Q, segurar), Cartas comunitárias (E, segurar), Valor (↕), Desistir (F), Pagar 65¢ (C), Aumentar para $1.35 (R). No centro inferior, a legenda “Sua vez” sobre as mãos que seguram K♥ Q♦.">
+      <div class="hud" role="img" aria-label="Simulação da HUD durante a vez do jogador">
+        <svg class="scene" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <radialGradient id="hudFelt" cx="50%" cy="100%" r="78%"><stop offset="0" stop-color="#2F8537"/><stop offset=".42" stop-color="#216A27"/><stop offset=".78" stop-color="#123E17"/><stop offset="1" stop-color="#0B260F"/></radialGradient>
+            <radialGradient id="hudWall" cx="50%" cy="-10%" r="90%"><stop offset="0" stop-color="#2B2117"/><stop offset="1" stop-color="#090807"/></radialGradient>
+          </defs>
+          <rect width="1600" height="900" fill="url(#hudWall)"/>
+          <g fill="#17110B">
+            <rect x="430" y="250" width="16" height="150"/><rect x="490" y="250" width="16" height="150"/><rect x="550" y="250" width="16" height="150"/><rect x="610" y="250" width="16" height="150"/>
+            <rect x="980" y="250" width="16" height="150"/><rect x="1040" y="250" width="16" height="150"/><rect x="1100" y="250" width="16" height="150"/><rect x="1160" y="250" width="16" height="150"/>
+            <rect x="400" y="236" width="800" height="16"/>
+          </g>
+          <g fill="#070605" stroke="#6B4A2A" stroke-opacity=".55" stroke-width="3">
+            <rect x="148" y="246" width="216" height="300" rx="80"/><circle cx="256" cy="204" r="46"/>
+            <rect x="700" y="206" width="200" height="260" rx="76"/><circle cx="800" cy="164" r="44"/>
+            <rect x="1236" y="246" width="216" height="300" rx="80"/><circle cx="1344" cy="204" r="46"/>
+          </g>
+          <g fill="#070605"><rect x="224" y="112" width="64" height="74"/><rect x="198" y="178" width="116" height="14" rx="7"/></g>
+          <path d="M748 150 Q800 124 852 150 L866 168 L734 168 Z" fill="#2E7D4F" fill-opacity=".75"/>
+          <path d="M-80 600 Q800 210 1680 600 L1680 900 L-80 900 Z" fill="url(#hudFelt)"/>
+          <path d="M-80 600 Q800 210 1680 600" fill="none" stroke="#2A1A12" stroke-width="16"/>
+          <g fill="#E7E4D9" fill-opacity=".85"><path d="M690 470 l44 0 l-6 22 l-44 0 z"/><path d="M742 470 l44 0 l-4 22 l-44 0 z"/><path d="M794 470 l44 0 l-2 22 l-44 0 z"/></g>
+          <g><ellipse cx="1290" cy="770" rx="44" ry="18" fill="#C13C42"/><ellipse cx="1290" cy="758" rx="44" ry="18" fill="#F3EEE6"/><ellipse cx="1290" cy="746" rx="44" ry="18" fill="#C13C42"/><ellipse cx="1392" cy="786" rx="44" ry="18" fill="#4E9A3E"/><ellipse cx="1392" cy="774" rx="44" ry="18" fill="#F3EEE6"/><ellipse cx="1392" cy="762" rx="44" ry="18" fill="#4E9A3E"/></g>
+        </svg>
+        <div class="board"><div class="cd">6<i>♣</i></div><div class="cd">6<i>♠</i></div><div class="cd">4<i>♠</i></div><div class="cd bk"></div><div class="cd bk"></div></div>
+        <div class="pot"><span>Pote</span><b>$2.70</b></div>
+        <div class="plist">
+          <div class="pl f"><span class="pt"></span><div><b>$3.35</b><em>Desistiu</em></div></div>
+          <div class="pl f"><span class="pt"></span><div><b>$12.80</b><em><span class="dbad">D</span>Desistiu</em></div></div>
+          <div class="pl f"><span class="pt"></span><div><b>$1.05</b><em>Desistiu</em></div></div>
+          <div class="pl"><span class="pt"></span><div><b>$3.05</b><em>65¢, Aposta</em></div></div>
+          <div class="pl me"><span class="pt"></span><div><b>$6.45</b><em>0¢, Sua vez…</em></div></div>
+        </div>
+        <div class="acts">
+          <div class="act">Suas cartas <span class="k h">Q</span></div>
+          <div class="act">Cartas comunitárias <span class="k h">E</span></div>
+          <div class="act">Valor <span class="k">↕</span></div>
+          <div class="act">Desistir <span class="k">F</span></div>
+          <div class="act">Pagar 65¢ <span class="k">C</span></div>
+          <div class="act">Aumentar para $1.35 <span class="k">R</span></div>
+        </div>
+        <div class="hand"><div class="cd r">K<i>♥</i></div><div class="cd r">Q<i>♦</i></div></div>
+        <div class="sub">Sua vez</div>
+      </div>
+      <figcaption class="cap">Simulação em HTML, com as mesmas proporções pedidas ao jogo.</figcaption>
+    </figure>
+    <div class="stack">
+      <ul>
+        <li>Tudo em <code>vh</code>: a HUD escala com a altura da janela e se ancora nos cantos.</li>
+        <li>Quem desistiu fica a 32% de opacidade e sem retrato. Status: “Small blind”, “Big blind”, “Passou”, “Pagou”, “65¢, Aposta”, “Aumentou”, “All-in”, “Desistiu”, “0¢, Sua vez…”.</li>
+        <li>Retratos: a cabeça de cada personagem renderizada num FBO de 256² na carga, em sépia com vinheta oval.</li>
+        <li>Glifo de segurar: disco escuro com anel claro. Glifo de toque: disco claro com letra escura. Com gamepad, viram LT, RT, A, X e Y.</li>
+        <li>Só aparecem ações legais, e as linhas são clicáveis.</li>
+        <li>No showdown, a legenda diz: “Lucien Marchand ganha $4.20 com Full house, Seis sobre Quatros”.</li>
+        <li><span class="tag i">Importante</span> “Sua mão: Par de Seis” acima das ações (opção ligada por padrão).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="8" data-part="Jogo" data-title="HUD: medidas">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Medidas da HUD, tiradas da captura da Ref D</h2>
+    <p class="small">Medido na captura de 1456 × 819 px e convertido para vh.</p></div>
+  <div class="body">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Elemento</th><th>Âncora e medidas</th><th>Tipografia e cor</th></tr></thead>
+      <tbody>
+        <tr><td>Board</td><td>topo 3,9 vh, direita 5,5 vh; 5 cartas de 4,9 × 7,3 vh com 1 vh entre elas</td><td>valor Oswald 600 a 2,9 vh; naipe a 2,2 vh; papel <code>#E7E4D9</code>, cantos de 0,5 vh; cartas ainda fechadas mostram o verso azul</td></tr>
+        <tr><td>Pote</td><td>alinhado à direita do board, linha de base a 15,3 vh</td><td>“Pote” Oswald 400 a 2,1 vh; valor Oswald 700 a 3,6 vh; side pots numa linha menor embaixo</td></tr>
+        <tr><td>Jogadores</td><td>esquerda 4,4 vh, base 4,2 vh; uma linha a cada 9,2 vh, você na última</td><td>retrato sépia de 6,4 vh; valor Oswald 700 a 3,4 vh; status Oswald 400 a 2 vh em etiqueta <code>#121210</code> a 62% (a sua: <code>#D2D0C6</code> a 34%)</td></tr>
+        <tr><td>Botão D</td><td>à esquerda do status de quem tem o botão</td><td>círculo de 2,1 vh com contorno de 0,2 vh; “D” em Oswald 600</td></tr>
+        <tr><td>Ações</td><td>direita 4,4 vh, base 5 vh; uma linha a cada 4,5 vh</td><td>versaletes em Rokkitt 700 a 2,5 vh; glifo de 2,9 vh</td></tr>
+        <tr><td>Legenda</td><td>centro, base 5,4 vh</td><td>Libre Franklin 500 a 2,4 vh; nome de quem fala na cor da persona</td></tr>
+        <tr><td>Todo texto</td><td>—</td><td><code>#EEE9DE</code> com sombras <code>0 0 0.6vh</code> preta a 85% e <code>0 0.15vh 0.2vh</code> preta a 90%</td></tr>
+      </tbody>
+    </table></div>
+    <div class="panel" data-md-skip style="display:flex;flex-wrap:wrap;gap:18px 40px;align-items:baseline">
+      <span style="font:700 34px/1 var(--font-display);font-variant:small-caps">Aumentar para $1.35</span>
+      <span style="font:700 40px/1 var(--font-num)">$6.45</span>
+      <span style="font:400 24px/1 var(--font-num)">65¢, Aposta</span>
+      <span style="font:500 26px/1 var(--font-body)">Sua vez</span>
+      <span class="small">Amostras nas fontes pedidas: Rokkitt, Oswald e Libre Franklin.</span>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="9" data-part="Jogo" data-title="Controles">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Controles no teclado, no mouse e no controle</h2></div>
+  <div class="body cols">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Ação</th><th>Teclado e mouse</th><th>Como</th></tr></thead>
+      <tbody>
+        <tr><td>Suas cartas</td><td><kbd>Q</kbd></td><td>segurar</td></tr>
+        <tr><td>Cartas comunitárias</td><td><kbd>E</kbd></td><td>segurar</td></tr>
+        <tr><td>Valor − / +</td><td><kbd>↓</kbd> <kbd>↑</kbd> ou roda</td><td>passo de 1 BB; Shift = 5 BB; Ctrl = 5¢</td></tr>
+        <tr><td>Atalhos de valor</td><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></td><td>½ pote, ¾ pote, pote, all-in</td></tr>
+        <tr><td>Desistir</td><td><kbd>F</kbd></td><td>toque; segurar 0,5 s se passar for de graça</td></tr>
+        <tr><td>Passar ou pagar</td><td><kbd>C</kbd></td><td>toque</td></tr>
+        <tr><td>Apostar ou aumentar</td><td><kbd>R</kbd></td><td>confirma o valor atual</td></tr>
+        <tr><td>Olhar em volta</td><td>mover o mouse; botão direito + arrastar</td><td>parallax leve; olhar livre</td></tr>
+        <tr><td>Acelerar animação</td><td><kbd>Espaço</kbd></td><td>4× enquanto segura</td></tr>
+        <tr><td>Ranking de mãos</td><td><kbd>H</kbd></td><td>segurar</td></tr>
+        <tr><td>Pausa · Mudo</td><td><kbd>Esc</kbd> · <kbd>M</kbd></td><td>toque</td></tr>
+      </tbody>
+    </table></div>
+    <div class="stack">
+      <div class="tw"><table class="t">
+        <thead><tr><th>Controle (Gamepad API)</th><th>Ação</th></tr></thead>
+        <tbody>
+          <tr><td>LT · RT</td><td>Suas cartas · Cartas comunitárias (segurar)</td></tr>
+          <tr><td>A</td><td>Apostar ou aumentar</td></tr>
+          <tr><td>X</td><td>Desistir</td></tr>
+          <tr><td>Y</td><td>Passar ou pagar</td></tr>
+          <tr><td>D-pad ↑↓ ou analógico esquerdo</td><td>Valor</td></tr>
+          <tr><td>LB · RB</td><td>atalho de valor anterior · próximo</td></tr>
+          <tr><td>Analógico direito</td><td>olhar</td></tr>
+          <tr><td>B · Start</td><td>voltar · pausa</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Os glifos da HUD seguem o último dispositivo usado. <span class="tag d">Desejável</span> toque na tela: tocar nas linhas de ação e arrastar para olhar.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♦" data-rank="10" data-part="Jogo" data-title="Telas e opções">
+  <div class="sh"><p class="kicker">Jogo</p><h2>Telas, opções e parâmetros de URL</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Telas</h3>
+      <ol>
+        <li><strong>Carregamento:</strong> fundo preto, “GOLDEN SPUR SALOON” em Rokkitt, barra fina de latão e o passo atual: “Pintando cartas…”, “Cunhando fichas…”, “Esculpindo rostos…”, “Afinando o piano…”, “Calculando probabilidades…”.</li>
+        <li><strong>Título:</strong> a mesa ao fundo com a câmera girando devagar; botões “Sentar à mesa”, “Como jogar” e “Opções”. O primeiro clique libera o áudio.</li>
+        <li><strong>Mesa:</strong> o jogo.</li>
+        <li><strong>Pausa</strong> (<kbd>Esc</kbd>): cena escurecida com Continuar, Opções, Ranking de mãos, Regras rápidas e Abandonar a mesa.</li>
+        <li><strong>Fim:</strong> “Você limpou a mesa!” ou “Você saiu em 4º lugar”, com mãos jogadas, mãos vencidas e maior pote; botões “Revanche” (semente nova) e “Mesma semente”.</li>
+      </ol>
+    </div>
+    <div class="stack">
+      <h3>Opções</h3>
+      <ul>
+        <li>Volumes geral, de ambiente e de efeitos.</li>
+        <li>Qualidade Baixa, Média, Alta ou Auto (padrão).</li>
+        <li>Velocidade das animações 1×, 1,5× ou 2×.</li>
+        <li>Olhar automático, nome da minha mão e legendas: ligados por padrão.</li>
+        <li>Sensibilidade do olhar e inversão do eixo Y.</li>
+        <li>Tudo salvo em <code>localStorage</code> com try/catch; o jogo funciona sem ele.</li>
+      </ul>
+      <h3>Parâmetros de URL</h3>
+      <ul class="small">
+        <li><code>?seed=123</code> partida reproduzível · <code>?quality=low|med|high</code></li>
+        <li><code>?debug=1</code> fps, draw calls, triângulos, cartas das IAs à mostra e log de decisões</li>
+        <li><code>?test=1</code> bateria de testes · <code>?guide=1</code> linhas de enquadramento</li>
+        <li><code>?fast=1</code> animações 4× · <code>?autoplay=1</code> a IA joga no seu lugar</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="A" data-part="Engenharia" data-title="Arquitetura do arquivo">
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Um arquivo, dezoito seções</h2></div>
+  <div class="body cols c32">
+    <div class="tw"><table class="t">
+      <thead><tr><th>§</th><th>Seção</th><th>Responsabilidade</th><th class="num">Linhas</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>Cabeçalho</td><td>registro de decisões, parâmetros de URL</td><td class="num">60</td></tr>
+        <tr><td>1</td><td>Config</td><td>medidas, cores, blinds, personas, tempos</td><td class="num">250</td></tr>
+        <tr><td>2</td><td>Utilitários</td><td>vetores, matrizes, quaternions, easing, ruído, PRNG sfc32</td><td class="num">400</td></tr>
+        <tr><td>3</td><td>Motor de poker</td><td>baralho, eval7, apostas, potes, estados, eventos</td><td class="num">900</td></tr>
+        <tr><td>4</td><td>IA</td><td>equidade Monte Carlo, tabela pré-flop, personas, falas</td><td class="num">600</td></tr>
+        <tr><td>5</td><td>Núcleo GL</td><td>contexto, shaders, VAOs, instancing, FBOs, texturas</td><td class="num">500</td></tr>
+        <tr><td>6</td><td>Texturas</td><td>cartas, fichas, botão, feltro, madeira, parede, retratos</td><td class="num">1200</td></tr>
+        <tr><td>7</td><td>Geometria</td><td>primitivas, revolução, extrusão, mesclagem</td><td class="num">500</td></tr>
+        <tr><td>8</td><td>Escultura SDF</td><td>personagens e mãos: SDF e Surface Nets</td><td class="num">700</td></tr>
+        <tr><td>9</td><td>Cena</td><td>salão, mesa, estojo, luzes, partículas</td><td class="num">800</td></tr>
+        <tr><td>10</td><td>Renderizador</td><td>sombra, HDR, bloom, DOF, composição, qualidade</td><td class="num">800</td></tr>
+        <tr><td>11</td><td>Animação</td><td>tweens, linha do tempo, IK, idles, gestos</td><td class="num">700</td></tr>
+        <tr><td>12</td><td>Áudio</td><td>síntese, ambiente, piano, mixagem</td><td class="num">450</td></tr>
+        <tr><td>13</td><td>HUD e menus</td><td>DOM, retratos, legendas, telas</td><td class="num">600</td></tr>
+        <tr><td>14</td><td>Entrada</td><td>teclado, mouse, gamepad</td><td class="num">250</td></tr>
+        <tr><td>15</td><td>Diretor</td><td>fluxo do jogo, fila de eventos</td><td class="num">600</td></tr>
+        <tr><td>16</td><td>Testes e debug</td><td><code>?test</code>, <code>?debug</code>, <code>?guide</code></td><td class="num">400</td></tr>
+        <tr><td>17</td><td>Boot</td><td>carregamento em etapas, laço principal</td><td class="num">100</td></tr>
+      </tbody>
+    </table></div>
+    <div class="stack">
+      <p class="lede">Cerca de 10 mil linhas e 350 a 600 KB. As estimativas servem para planejar as fases, não como limite.</p>
+      <h3>Convenções</h3>
+      <ul>
+        <li><code>'use strict'</code> e nenhum global além de <code>App</code>.</li>
+        <li>Identificadores em inglês; comentários em pt-BR.</li>
+        <li>Shaders em template strings com <code>#version 300 es</code>, compilados com mensagem de erro legível.</li>
+        <li>Cada seção abre com um banner <code>// ===== §3 Motor de poker =====</code>.</li>
+        <li>O motor (§3) e a IA (§4) não tocam DOM nem GL: rodam sozinhos nos testes.</li>
+        <li>Nada de <code>new</code> dentro do laço de render: buffers e typed arrays pré-alocados.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="2" data-part="Engenharia" data-title="Renderizador">
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Renderizador: oito passes por quadro</h2></div>
+  <div class="body">
+    <div class="chain">
+      <div><b><small>1</small>Sombras</b><span>spot em 2048², PCF 16 com busca de bloqueador; estáticos em cache</span></div>
+      <div><b><small>2</small>Cena HDR</b><span>RGBA16F + depth24, MSAA 4×, forward, até 8 luzes</span></div>
+      <div><b><small>3</small>Resolve</b><span>blitFramebuffer para textura simples</span></div>
+      <div><b><small>4</small>Bloom</b><span>6 níveis; descida de 13 amostras, subida em tenda de 9</span></div>
+      <div><b><small>5</small>DOF</b><span>½ resolução, CoC pela profundidade, disco de 22 amostras</span></div>
+      <div><b><small>6</small>Composição</b><span>ACES, gradação, vinheta, grão, dithering</span></div>
+      <div><b><small>7</small>sRGB</b><span>conversão no shader; o framebuffer padrão é linear</span></div>
+      <div><b><small>8</small>HUD</b><span>DOM por cima do canvas</span></div>
+    </div>
+    <div class="cols">
+      <div class="stack">
+        <h3>Materiais</h3>
+        <ul>
+          <li>GGX, Smith e Schlick no especular, Lambert no difuso. Cada material define cor, rugosidade, metálico e sheen.</li>
+          <li>Feltro: sheen aveludado (termo “Charlie”) e normal de fibra por ruído.</li>
+          <li>Pele: difuso com wrap de 0,3 e tom avermelhado no terminador, um subsurface barato.</li>
+          <li>Fichas: argila com rugosidade 0,6; rótulo metálico 0,4 com purpurina (pontos de hash que acendem no especular).</li>
+          <li>Metais: latão, cobre e ferro com rugosidade de 0,2 a 0,4, refletindo um cubemap procedural de 64² feito de gradientes e lâmpadas.</li>
+          <li>Vidro: fresnel e reflexo do ambiente, em alpha blend depois dos opacos.</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <h3>Instancing e passes extras</h3>
+        <ul>
+          <li>Fichas: um mesh instanciado de 48 segmentos, com matriz e valor por instância.</li>
+          <li>Cartas: um mesh instanciado com a camada da <code>TEXTURE_2D_ARRAY</code> e a dobra por instância.</li>
+          <li>Salão estático mesclado por material; balaústres, garrafas e cadeiras instanciados.</li>
+          <li>Retratos: na carga, a cabeça de cada personagem renderizada num FBO de 256².</li>
+          <li>Guia do <code>?guide=1</code> desenhado num canvas 2D por cima.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="3" data-part="Engenharia" data-title="Geometria e personagens">
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Personagens esculpidos em SDF e convertidos em malha na carga</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Modelagem</h3>
+      <ul>
+        <li>Cada personagem é um conjunto de peças rígidas: tronco, cabeça, braços, antebraços, mãos, chapéu, óculos. Cada peça é uma SDF de esferas, elipsoides, cápsulas, caixas arredondadas, cones e toros, com união suave (smin polinomial, k de 0,5 a 3 cm), subtração e espelhamento em x.</li>
+        <li>Na carga, cada peça vira malha por Surface Nets numa grade de 0,8 a 1,2 cm; cabeça e mãos a 0,5 cm. Normais pelo gradiente da SDF; material por vértice pela primitiva dominante (pele, cabelo, tecido, metal, lente); AO assada em 5 passos ao longo da normal.</li>
+        <li>Olhos são esferas separadas com íris desenhada; as pálpebras são calotas que giram para piscar.</li>
+        <li>Bigodes, cabelo, golas, lapelas e chapéus entram nas SDFs; dobras de tecido com ruído leve.</li>
+        <li>Até 45 mil triângulos por personagem; tudo pronto em até 2,5 s, fatiado entre quadros.</li>
+        <li>Primitivas de malha comuns: caixa, caixa arredondada, cilindro chanfrado, esfera, cápsula, toro, revolução e extrusão.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Esqueleto e animação</h3>
+      <ul>
+        <li>Hierarquia rígida: quadril → coluna → peito → pescoço → cabeça; peito → ombro → braço → antebraço → mão. Pernas ficam sob a mesa e não são modeladas.</li>
+        <li>IK analítica de dois ossos nos braços (lei dos cossenos e vetor de cotovelo).</li>
+        <li>Olhar com mola criticamente amortecida (ω = 8) para quem age, o pote ou as próprias cartas; microssacadas de ±3° a cada 0,5 a 2 s.</li>
+        <li>Idle: respiração a 0,22–0,3 Hz, balanço lento, piscadas a cada 2 a 6 s, troca de apoio a cada 6 a 12 s.</li>
+        <li>Gestos: espiar cartas, apostar, passar, desistir, all-in, vencer (recosta e puxa o pote), perder (ombros caem). <span class="tag d">Desejável</span> o Coronel bebe e fuma.</li>
+        <li>Suas mãos: SDF com punho branco e manga de casaco marrom; seguram as cartas e respiram junto com a câmera.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="4" data-part="Engenharia" data-title="Orçamento de desempenho">
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Orçamento de desempenho no notebook de referência</h2>
+    <p class="small">Intel Iris Xe integrada, 1080p, qualidade Auto. A GeForce MX450 do mesmo notebook serve de segunda referência.</p></div>
+  <div class="body cols">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Item</th><th>Limite</th></tr></thead>
+      <tbody>
+        <tr><td>Quadros por segundo</td><td>60 de média; nunca abaixo de 50 por mais de 1 s</td></tr>
+        <tr><td>Draw calls</td><td>até 150</td></tr>
+        <tr><td>Triângulos</td><td>até 800 mil</td></tr>
+        <tr><td>Memória de textura</td><td>até 256 MB</td></tr>
+        <tr><td>JavaScript por quadro</td><td>até 4 ms, com a IA fatiada em até 3 ms</td></tr>
+        <tr><td>Carregamento</td><td>até 6 s para chegar ao título</td></tr>
+        <tr><td>Tamanho do arquivo</td><td>até 600 KB</td></tr>
+        <tr><td>Coleta de lixo</td><td>sem alocação no laço de render</td></tr>
+      </tbody>
+    </table></div>
+    <div class="stack">
+      <div class="tw"><table class="t">
+        <thead><tr><th>Preset</th><th>Baixa</th><th>Média</th><th>Alta</th></tr></thead>
+        <tbody>
+          <tr><td>Escala de render</td><td>0,7</td><td>0,85</td><td>1,0</td></tr>
+          <tr><td>Sombra</td><td>1024</td><td>2048</td><td>2048 com PCSS</td></tr>
+          <tr><td>MSAA</td><td>—</td><td>4×</td><td>4×</td></tr>
+          <tr><td>Bloom</td><td>4 níveis</td><td>6</td><td>6</td></tr>
+          <tr><td>DOF</td><td>desligado</td><td>½ res, 12 amostras</td><td>½ res, 22 amostras</td></tr>
+          <tr><td>Partículas</td><td>não</td><td>poeira</td><td>poeira e fumaça</td></tr>
+          <tr><td>Grade SDF</td><td>1,2 cm</td><td>1,0 cm</td><td>0,8 cm</td></tr>
+        </tbody>
+      </table></div>
+      <p class="small">Auto começa no Alta e move a escala de render entre 0,6 e 1,0 para manter 55 fps ou mais (média de 2 s). A escala muda em passos de 0,05, no máximo uma vez por segundo, para a imagem não piscar.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="5" data-part="Engenharia" data-title="Testes e verificação">
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Como o Claude prova que funciona</h2></div>
+  <div class="body cols">
+    <div class="stack">
+      <h3>Bateria do <code>?test=1</code></h3>
+      <ul>
+        <li>Sobreposição com ✔ ou ✘ por teste e resumo no console (<code>console.table</code>).</li>
+        <li><strong>Avaliador:</strong> os 9 casos do ♦4 e 10 000 mãos aleatórias conferidas contra um avaliador ingênuo que testa as 21 combinações de 5 cartas.</li>
+        <li><strong>Nomes das mãos</strong> em pt-BR, um caso por categoria.</li>
+        <li><strong>Potes:</strong> o exemplo do ♦3 e mais cinco cenários: dois all-ins diferentes, três all-ins, empate com centavo ímpar, aposta não paga devolvida, quem desistiu não concorre.</li>
+        <li><strong>Apostas:</strong> raise mínimo, aumento incompleto, ordem no heads-up, blinds depois de uma eliminação, fim de rodada quando todos igualam.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Simulação e execução longa</h3>
+      <ul>
+        <li><strong>20 000 mãos sem render</strong>, IA contra IA. Invariantes: soma das fichas constante; nenhum stack negativo; todo pote pago por inteiro; o botão sempre avança para um ativo; toda ação é legal; todo Sit &amp; Go termina.</li>
+        <li><strong>Determinismo:</strong> duas execuções com a mesma semente geram o mesmo hash do log de eventos.</li>
+        <li><strong><code>?autoplay=1</code>:</strong> 30 minutos com render, sem erro e sem a memória crescer.</li>
+        <li><strong><code>?debug=1</code>:</strong> <code>gl.getError()</code> depois de cada passe; em uso normal o console fica limpo.</li>
+        <li><strong>Visual:</strong> com <code>?guide=1</code>, conferir o enquadramento; depois comparar uma captura lado a lado com a Ref D.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="6" data-part="Engenharia" data-title="Fases de entrega">
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Oito fases, cada uma termina rodando</h2></div>
+  <div class="body">
+    <div class="tw"><table class="t">
+      <thead><tr><th>Fase</th><th>Entrega</th><th>Pronto quando</th></tr></thead>
+      <tbody>
+        <tr><td>M0 · Esqueleto</td><td>arquivo, boot, WebGL2, laço, câmera, mesa com feltro e aro, luz principal, ACES</td><td>abre sem erros, 60 fps, <code>?guide=1</code> bate o enquadramento</td></tr>
+        <tr><td>M1 · Motor de poker</td><td>baralho, eval7, apostas, potes, estados, eventos, IA provisória</td><td><code>?test=1</code> todo verde; 20 000 mãos sem violar invariantes</td></tr>
+        <tr><td>M2 · Cartas e fichas</td><td>texturas procedurais das Refs A e B, botão, instancing, sombras de contato</td><td>cena parada com board e pilhas, comparada às Refs A e B</td></tr>
+        <tr><td>M3 · Jogável</td><td>Diretor, animações de dar, apostar e pagar, HUD, entrada; manequins de cápsula nos lugares</td><td>um Sit &amp; Go inteiro jogável, do título ao fim</td></tr>
+        <tr><td>M4 · IA</td><td>personas, Monte Carlo, tamanhos, tempos, falas</td><td>em 500 mãos, VPIP e PFR medidos de cada persona a até 5 pontos do alvo</td></tr>
+        <tr><td>M5 · Ambiente e luz</td><td>salão, estojo da Ref C, lampiões, pós-processamento, presets</td><td>lado a lado com a Ref D: clima, cores e composição</td></tr>
+        <tr><td>M6 · Personagens</td><td>SDF e Surface Nets, idles, gestos, IK, retratos, suas mãos</td><td>os cinco reconhecíveis pela silhueta e pelo figurino</td></tr>
+        <tr><td>M7 · Áudio e acabamento</td><td>áudio, menus, opções, telas de título e fim, passe de desempenho</td><td>todos os critérios do ♣7</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">Ao fim de cada fase: arquivo funcionando, lista do que foi feito, o que ficou pendente e as novas linhas de <code>// DECISÃO:</code>.</p>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="7" data-part="Engenharia" data-title="Aceite, escopo e riscos">
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Pronto, fora do escopo e o que pode dar errado</h2></div>
+  <div class="body cols c3">
+    <div class="stack">
+      <h3>Pronto significa</h3>
+      <ul>
+        <li>Abre com duplo clique no Chrome, no Edge e no Firefox, sem erro no console e sem rede além das fontes.</li>
+        <li>Um Sit &amp; Go completo, com regras corretas e testes verdes.</li>
+        <li>Enquadramento, luz, feltro e HUD batem com a Ref D (guia com ±3%).</li>
+        <li>Verso com as 9 camadas da Ref A em azul e vermelho; 7 fichas com a anatomia da Ref B; estojo e botão da Ref C.</li>
+        <li>Cinco personagens reconhecíveis; sombras suaves sob fichas e cartas.</li>
+        <li>55 fps ou mais de média no Iris Xe em 1080p, qualidade Auto.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Fora do escopo</h3>
+      <ul>
+        <li>Multijogador e rede.</li>
+        <li>Dinheiro real, contas e progressão.</li>
+        <li>Omaha, Stud e limit.</li>
+        <li>Minijogos de trapaça.</li>
+        <li>Humanos fotorrealistas.</li>
+        <li>Assets externos, bibliotecas e build.</li>
+        <li>Idiomas além do pt-BR.</li>
+      </ul>
+    </div>
+    <div class="stack">
+      <h3>Riscos e resposta</h3>
+      <ul>
+        <li><strong>Personagens toscos:</strong> estilizar com silhueta forte, figurino em blocos de cor, luz baixa e DOF; priorizar Silas, Coronel e Lucien, que estão sempre em quadro.</li>
+        <li><strong>Iris Xe lento:</strong> resolução dinâmica, presets, instancing, sombras estáticas em cache.</li>
+        <li><strong>Cartas ilegíveis em 3D:</strong> HUD, visões de foco, anisotropia e textura de 1024 px nas suas cartas.</li>
+        <li><strong>Arquivo gigante:</strong> fases, seções e testes; nunca quebrar o build.</li>
+        <li><strong>Resposta cortada:</strong> entregar por fase e continuar do ponto exato.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-suit="♣" data-rank="8" data-part="Engenharia" data-title="Prompt de abertura" data-export-first>
+  <div class="sh"><p class="kicker">Engenharia</p><h2>Prompt de abertura para o outro chat</h2></div>
+  <div class="body cols c32">
+    <div class="panel stack">
+      <p>Você vai implementar o jogo <strong>Golden Spur Hold'em</strong> descrito nesta especificação. As imagens Ref A (verso das cartas), Ref B (fichas), Ref C (estojo do dealer) e Ref D (mesa do Red Dead Redemption 2) estão anexadas.</p>
+      <ol>
+        <li>Leia a especificação inteira antes de escrever código.</li>
+        <li>Entregue um único <code>index.html</code> com WebGL2 e JavaScript puros. Nenhuma biblioteca e nenhum arquivo externo: texturas, modelos, personagens e sons são gerados em código. A única exceção, opcional, são as fontes do Google Fonts, com fallback.</li>
+        <li>Siga as fases M0 a M7. Ao fim de cada uma, entregue o arquivo funcionando, confira os critérios de aceite e mostre o resultado antes de seguir.</li>
+        <li>Em lacunas ou conflitos, decida pela ordem de prioridades e registre no topo do arquivo com <code>// DECISÃO:</code>.</li>
+        <li>Não simplifique as regras do poker. Rode <code>?test=1</code> e mostre o resultado.</li>
+        <li>Se a resposta for cortada, continue exatamente de onde parou, sem recomeçar.</li>
+      </ol>
+      <p>Se estiver no repositório <code>discovery</code>, crie <code>poker-saloon/index.html</code> e atualize o <code>README.md</code> da pasta. Comece pela fase M0: apresente o plano de seções do arquivo e depois o código.</p>
+    </div>
+    <div class="stack" data-md-skip>
+      <h3>Como este texto é usado</h3>
+      <p>O botão <strong>Copiar prompt</strong> coloca este bloco no topo e, abaixo dele, todos os slides convertidos em Markdown. As ilustrações entram como descrições em texto.</p>
+      <p class="small">Se o navegador bloquear a cópia automática, a janela mostra o texto inteiro para selecionar e copiar com <kbd>Ctrl</kbd> + <kbd>C</kbd>.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<nav class="bar" id="bar" aria-label="Navegação dos slides">
+  <button type="button" id="btnPrev" data-present aria-label="Slide anterior">◀</button>
+  <span class="count" id="count" data-present aria-live="polite">1 / 1</span>
+  <button type="button" id="btnNext" data-present aria-label="Próximo slide">▶</button>
+  <button type="button" id="btnToc">Índice</button>
+  <button type="button" id="btnMode">Documento</button>
+  <button type="button" id="btnPrompt" class="primary">Copiar prompt</button>
+</nav>
+
+<dialog id="tocDlg" aria-labelledby="tocTitle">
+  <div class="dlg-h"><h2 id="tocTitle">Índice</h2><div><button type="button" class="btn" id="tocClose">Fechar</button></div></div>
+  <div class="dlg-b"><div class="toc" id="toc"></div></div>
+</dialog>
+
+<dialog id="promptDlg" aria-labelledby="promptTitle">
+  <div class="dlg-h"><h2 id="promptTitle">Prompt em Markdown</h2>
+    <div><span class="status" id="promptStatus" role="status"></span><button type="button" class="btn primary" id="promptCopy">Copiar</button><button type="button" class="btn" id="promptClose">Fechar</button></div></div>
+  <div class="dlg-b"><textarea id="promptText" readonly spellcheck="false" aria-label="Especificação completa em Markdown"></textarea></div>
+</dialog>
+
+<script>
+'use strict';
+/* ===== Deck: índices de canto, modos, navegação, índice e exportação em Markdown ===== */
+(() => {
+  const deck = document.getElementById('deck');
+  const slides = [...deck.querySelectorAll('.slide')];
+  const bar = document.getElementById('bar');
+  const count = document.getElementById('count');
+  const btnMode = document.getElementById('btnMode');
+  const presentOnly = [...bar.querySelectorAll('[data-present]')];
+  const RED = new Set(['♥', '♦']);
+  let cur = 0;
+  let mode = 'doc';
+
+  slides.forEach((s, i) => {
+    const { suit, rank } = s.dataset;
+    for (const pos of ['tl', 'br']) {
+      const d = document.createElement('div');
+      d.className = 'idx ' + pos;
+      d.setAttribute('aria-hidden', 'true');
+      d.innerHTML = `<b>${rank}</b><i>${suit}</i>`;
+      pos === 'tl' ? s.prepend(d) : s.append(d);
+    }
+    const m = document.createElement('div');
+    m.className = 'meta';
+    m.textContent = `${s.dataset.part} · ${i + 1} / ${slides.length}`;
+    s.append(m);
+    s.setAttribute('aria-label', `${rank}${suit} ${s.dataset.title}`);
+  });
+
+  function fit() {
+    if (mode !== 'present') return;
+    const r = deck.getBoundingClientRect();
+    const k = Math.min((r.width - 32) / 1600, (r.height - 24) / 900);
+    deck.style.setProperty('--k', Math.max(0.2, k).toFixed(4));
+  }
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, j) => s.classList.toggle('is-current', j === cur));
+    slides[cur].scrollTop = 0;
+    count.textContent = `${cur + 1} / ${slides.length}`;
+    try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) { /* sandbox sem history */ }
+  }
+  function setMode(m, keepPlace) {
+    mode = m;
+    deck.classList.toggle('present', m === 'present');
+    deck.classList.toggle('doc', m === 'doc');
+    presentOnly.forEach(el => { el.hidden = m !== 'present'; });
+    btnMode.textContent = m === 'present' ? 'Documento' : 'Apresentar';
+    if (m === 'present') { show(cur); fit(); }
+    else {
+      slides.forEach(s => s.classList.remove('is-current'));
+      if (keepPlace) slides[cur].scrollIntoView({ block: 'start' });
+    }
+    try { localStorage.setItem('gsh-mode', m); } catch (e) { /* sem armazenamento */ }
+  }
+  function go(i) {
+    if (mode === 'present') show(i);
+    else { cur = i; slides[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+
+  // No modo documento, acompanha o slide visível para a volta ao modo apresentação.
+  const io = new IntersectionObserver(entries => {
+    if (mode !== 'doc') return;
+    for (const e of entries) if (e.isIntersecting) cur = slides.indexOf(e.target);
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  slides.forEach(s => io.observe(s));
+
+  document.getElementById('btnPrev').addEventListener('click', () => show(cur - 1));
+  document.getElementById('btnNext').addEventListener('click', () => show(cur + 1));
+  btnMode.addEventListener('click', () => setMode(mode === 'present' ? 'doc' : 'present', true));
+  window.addEventListener('resize', fit);
+
+  document.addEventListener('keydown', e => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (document.querySelector('dialog[open]') || (e.target.closest && e.target.closest('textarea, input'))) return;
+    const k = e.key;
+    if (k === 'g' || k === 'G') { openToc(); e.preventDefault(); return; }
+    if (k === 'd' || k === 'D') { setMode(mode === 'present' ? 'doc' : 'present', true); return; }
+    if (mode !== 'present') return;
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ') { show(cur + 1); e.preventDefault(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp') { show(cur - 1); e.preventDefault(); }
+    else if (k === 'Home') { show(0); e.preventDefault(); }
+    else if (k === 'End') { show(slides.length - 1); e.preventDefault(); }
+  });
+  let touchX = null;
+  deck.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  deck.addEventListener('touchend', e => {
+    if (mode !== 'present' || touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 60) show(cur + (dx < 0 ? 1 : -1));
+    touchX = null;
+  });
+
+  // Índice
+  const tocDlg = document.getElementById('tocDlg');
+  const toc = document.getElementById('toc');
+  const parts = new Map();
+  slides.forEach((s, i) => {
+    if (!parts.has(s.dataset.suit)) parts.set(s.dataset.suit, { name: s.dataset.part, items: [] });
+    parts.get(s.dataset.suit).items.push(i);
+  });
+  for (const [suit, p] of parts) {
+    const sec = document.createElement('section');
+    const h = document.createElement('h3');
+    h.textContent = `${suit} ${p.name}`;
+    sec.append(h);
+    for (const i of p.items) {
+      const s = slides[i];
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.innerHTML = `<b class="${RED.has(suit) ? 'red' : ''}">${s.dataset.rank}${suit}</b><span></span>`;
+      b.querySelector('span').textContent = s.dataset.title;
+      b.addEventListener('click', () => { tocDlg.close(); go(i); });
+      sec.append(b);
+    }
+    toc.append(sec);
+  }
+  function openToc() { if (!tocDlg.open) tocDlg.showModal(); }
+  document.getElementById('btnToc').addEventListener('click', openToc);
+  document.getElementById('tocClose').addEventListener('click', () => tocDlg.close());
+
+  // Exportação em Markdown
+  const clean = s => s.replace(/\s+/g, ' ').trim();
+  const wrap = (txt, a, b = a) => {
+    const m = txt.match(/^(\s*)([\s\S]*?)(\s*)$/);
+    return m[2] ? m[1] + a + m[2] + b + m[3] : txt;
+  };
+  function mdInline(node) {
+    let out = '';
+    node.childNodes.forEach(n => {
+      if (n.nodeType === 3) { out += n.nodeValue; return; }
+      if (n.nodeType !== 1) return;
+      const el = n;
+      if (el.matches('[data-md-skip], .idx, .meta, .sw, canvas, svg')) return;
+      if (el.classList.contains('tag')) { out += `[${clean(el.textContent).toUpperCase()}]`; return; }
+      const tag = el.tagName;
+      if (tag === 'BR') { out += ' — '; return; }
+      const inner = mdInline(el);
+      if (tag === 'STRONG' || tag === 'B') out += wrap(inner, '**');
+      else if (tag === 'EM' || tag === 'I') out += wrap(inner, '*');
+      else if (tag === 'CODE' || tag === 'KBD') out += wrap(inner, '`');
+      else if (tag === 'A') out += `[${clean(inner)}](${el.getAttribute('href')})`;
+      else out += inner;
+    });
+    return out;
+  }
+  function mdList(el, depth) {
+    const ordered = el.tagName === 'OL';
+    let i = 1, out = '';
+    for (const li of el.children) {
+      if (li.tagName !== 'LI') continue;
+      const copy = li.cloneNode(true);
+      copy.querySelectorAll('ul, ol').forEach(x => x.remove());
+      out += '  '.repeat(depth) + (ordered ? `${i++}. ` : '- ') + clean(mdInline(copy)) + '\n';
+      li.querySelectorAll(':scope > ul, :scope > ol').forEach(sub => { out += mdList(sub, depth + 1); });
+    }
+    return out;
+  }
+  function mdTable(t) {
+    const rows = [...t.rows].map(r => [...r.cells].map(c => clean(mdInline(c)).replace(/\|/g, '\\|')));
+    if (!rows.length) return '';
+    const [head, ...body] = rows;
+    return `| ${head.join(' | ')} |\n| ${head.map(() => '---').join(' | ')} |\n` + body.map(r => `| ${r.join(' | ')} |`).join('\n') + '\n';
+  }
+  const BLOCKS = 'P, UL, OL, TABLE, H3, DIV, FIGURE, SECTION, NAV';
+  function mdBlock(el) {
+    if (el.matches('[data-md-skip], .idx, .meta, .kicker, canvas, svg, h1, h2')) return '';
+    if (el.dataset.md) return el.dataset.md + '\n\n';
+    const tag = el.tagName;
+    if (tag === 'H3') return `### ${clean(mdInline(el))}\n\n`;
+    if (tag === 'P') return clean(mdInline(el)) + '\n\n';
+    if (tag === 'UL' || tag === 'OL') return mdList(el, 0) + '\n';
+    if (tag === 'TABLE') return mdTable(el) + '\n';
+    if (tag === 'FIGCAPTION') return `*${clean(mdInline(el))}*\n\n`;
+    if (el.classList.contains('pal')) {
+      return [...el.children].map(d => `- ${clean(d.querySelector('b').textContent)}: ${clean(d.querySelector('code').textContent)}`).join('\n') + '\n\n';
+    }
+    if (el.classList.contains('chain')) {
+      return [...el.children].map(d => {
+        const n = clean(d.querySelector('small').textContent);
+        const name = clean(d.querySelector('b').textContent).replace(n, '').trim();
+        return `${n}. **${name}**: ${clean(d.querySelector('span').textContent)}`;
+      }).join('\n') + '\n\n';
+    }
+    if (![...el.children].some(c => c.matches(BLOCKS))) {
+      const t = clean(mdInline(el));
+      return t ? t + '\n\n' : '';
+    }
+    let out = '';
+    for (const c of el.children) out += mdBlock(c);
+    return out;
+  }
+  function slideMd(s, heading) {
+    let out = `## ${heading || `${s.dataset.rank}${s.dataset.suit} · ${s.dataset.title}`}\n\n`;
+    const h2 = s.querySelector('h2');
+    if (h2) out += `**${clean(h2.textContent)}**\n\n`;
+    for (const c of s.children) out += mdBlock(c);
+    return out.replace(/\n{3,}/g, '\n\n');
+  }
+  function buildMarkdown() {
+    const first = slides.find(s => s.hasAttribute('data-export-first'));
+    let md = `# Golden Spur Hold'em: especificação para implementação\n\n`;
+    if (first) md += slideMd(first, 'Prompt de abertura') + '---\n\n';
+    let suit = '';
+    for (const s of slides) {
+      if (s === first) continue;
+      if (s.dataset.suit !== suit) { suit = s.dataset.suit; md += `# ${suit} ${s.dataset.part}\n\n`; }
+      md += slideMd(s);
+    }
+    return md.trim() + '\n';
+  }
+
+  const promptDlg = document.getElementById('promptDlg');
+  const promptText = document.getElementById('promptText');
+  const promptStatus = document.getElementById('promptStatus');
+  async function copyPrompt() {
+    const text = promptText.value;
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+      try { promptText.focus(); promptText.select(); ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    }
+    promptStatus.textContent = ok
+      ? `Copiado: ${text.length.toLocaleString('pt-BR')} caracteres.`
+      : 'A cópia automática foi bloqueada. Selecione o texto e use Ctrl+C.';
+  }
+  document.getElementById('btnPrompt').addEventListener('click', () => {
+    promptText.value = buildMarkdown();
+    promptStatus.textContent = '';
+    if (!promptDlg.open) promptDlg.showModal();
+    copyPrompt();
+  });
+  document.getElementById('promptCopy').addEventListener('click', copyPrompt);
+  document.getElementById('promptClose').addEventListener('click', () => promptDlg.close());
+
+  window.GSH = { buildMarkdown };
+
+  // Modo inicial: apresentação em telas largas, documento em telas estreitas.
+  const n = parseInt(location.hash.slice(1), 10);
+  if (n >= 1 && n <= slides.length) cur = n - 1;
+  let saved = null;
+  try { saved = localStorage.getItem('gsh-mode'); } catch (e) { /* sem armazenamento */ }
+  const wide = window.matchMedia('(min-width: 900px)').matches;
+  setMode(wide ? (saved || 'present') : 'doc', false);
+})();
+</script>
+
+<script>
+'use strict';
+/* ===== Ilustrações de referência em Canvas 2D: verso, frente, fichas, estojo e botão ===== */
+(() => {
+  const TAU = Math.PI * 2;
+  const NAVY = '#1F2A55', CRIMSON = '#B0303F', LINE = '#F4F6F8';
+  const INK_RED = '#B3261E', INK_BLACK = '#1B1A17';
+  const CHIPS = [
+    { v: '1', body: '#A9A2A3', label: '#BDB6B6' },
+    { v: '5', body: '#C13C42', label: '#CF5157' },
+    { v: '25', body: '#4E9A3E', label: '#72A44D' },
+    { v: '50', body: '#25ABC9', label: '#47BCD8' },
+    { v: '100', body: '#141110', label: '#221E1B', dark: true },
+    { v: '500', body: '#A34FB8', label: '#B966C6' },
+    { v: '1000', body: '#E9CF1F', label: '#EBD84A' },
+  ];
+
+  function rng(seed) {
+    return () => {
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function mix(hex, to, a) {
+    const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    const [r1, g1, b1] = p(hex), [r2, g2, b2] = p(to);
+    const f = (x, y) => Math.round(x + (y - x) * a);
+    return `rgb(${f(r1, r2)},${f(g1, g2)},${f(b1, b2)})`;
+  }
+  function rr(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+  // Naipes como caminhos Bézier centrados em (x, y), altura s.
+  function suit(c, k, x, y, s) {
+    c.beginPath();
+    if (k === 'h') {
+      c.moveTo(x, y + 0.45 * s);
+      c.bezierCurveTo(x - 0.1 * s, y + 0.3 * s, x - 0.55 * s, y + 0.05 * s, x - 0.52 * s, y - 0.2 * s);
+      c.bezierCurveTo(x - 0.5 * s, y - 0.47 * s, x - 0.1 * s, y - 0.52 * s, x, y - 0.25 * s);
+      c.bezierCurveTo(x + 0.1 * s, y - 0.52 * s, x + 0.5 * s, y - 0.47 * s, x + 0.52 * s, y - 0.2 * s);
+      c.bezierCurveTo(x + 0.55 * s, y + 0.05 * s, x + 0.1 * s, y + 0.3 * s, x, y + 0.45 * s);
+    } else if (k === 'd') {
+      c.moveTo(x, y - 0.5 * s);
+      c.quadraticCurveTo(x + 0.12 * s, y - 0.12 * s, x + 0.38 * s, y);
+      c.quadraticCurveTo(x + 0.12 * s, y + 0.12 * s, x, y + 0.5 * s);
+      c.quadraticCurveTo(x - 0.12 * s, y + 0.12 * s, x - 0.38 * s, y);
+      c.quadraticCurveTo(x - 0.12 * s, y - 0.12 * s, x, y - 0.5 * s);
+    } else if (k === 's') {
+      c.moveTo(x, y - 0.5 * s);
+      c.bezierCurveTo(x + 0.12 * s, y - 0.32 * s, x + 0.56 * s, y - 0.12 * s, x + 0.52 * s, y + 0.13 * s);
+      c.bezierCurveTo(x + 0.49 * s, y + 0.37 * s, x + 0.15 * s, y + 0.4 * s, x + 0.05 * s, y + 0.2 * s);
+      c.quadraticCurveTo(x + 0.08 * s, y + 0.42 * s, x + 0.22 * s, y + 0.5 * s);
+      c.lineTo(x - 0.22 * s, y + 0.5 * s);
+      c.quadraticCurveTo(x - 0.08 * s, y + 0.42 * s, x - 0.05 * s, y + 0.2 * s);
+      c.bezierCurveTo(x - 0.15 * s, y + 0.4 * s, x - 0.49 * s, y + 0.37 * s, x - 0.52 * s, y + 0.13 * s);
+      c.bezierCurveTo(x - 0.56 * s, y - 0.12 * s, x - 0.12 * s, y - 0.32 * s, x, y - 0.5 * s);
+    } else {
+      for (const [dx, dy] of [[0, -0.23], [-0.25, 0.06], [0.25, 0.06]]) {
+        c.moveTo(x + dx * s + 0.22 * s, y + dy * s);
+        c.arc(x + dx * s, y + dy * s, 0.22 * s, 0, TAU);
+      }
+      c.moveTo(x - 0.05 * s, y);
+      c.quadraticCurveTo(x - 0.07 * s, y + 0.38 * s, x - 0.22 * s, y + 0.5 * s);
+      c.lineTo(x + 0.22 * s, y + 0.5 * s);
+      c.quadraticCurveTo(x + 0.07 * s, y + 0.38 * s, x + 0.05 * s, y);
+    }
+    c.closePath();
+  }
+
+  function cardBack(c, x, y, w, h, col) {
+    const L = w;
+    c.save(); c.translate(x, y);
+    rr(c, 0, 0, w, h, L * 0.05); c.fillStyle = LINE; c.fill();
+    const m = L * 0.065, fw = w - 2 * m, fh = h - 2 * m, b = L * 0.05;
+    c.fillStyle = col; c.fillRect(m, m, fw, fh);
+    c.strokeStyle = LINE; c.fillStyle = LINE;
+    c.lineWidth = Math.max(0.6, L * 0.006);
+    c.strokeRect(m + L * 0.012, m + L * 0.012, fw - L * 0.024, fh - L * 0.024);
+    c.strokeRect(m + b, m + b, fw - 2 * b, fh - 2 * b);
+    const mid = m + (L * 0.012 + b) / 2, d = L * 0.008;
+    c.lineWidth = Math.max(0.5, L * 0.0045); c.beginPath();
+    const cross = (px, py) => { c.moveTo(px - d, py - d); c.lineTo(px + d, py + d); c.moveTo(px + d, py - d); c.lineTo(px - d, py + d); };
+    for (let t = m + L * 0.035; t < w - m - L * 0.02; t += L * 0.028) { cross(t, mid); cross(t, h - mid); }
+    for (let t = m + L * 0.035; t < h - m - L * 0.02; t += L * 0.028) { cross(mid, t); cross(w - mid, t); }
+    c.stroke();
+    c.save(); c.beginPath(); c.rect(m + b, m + b, fw - 2 * b, fh - 2 * b); c.clip();
+    const p = L * 0.045, q = L * 0.025;
+    for (let yy = m + b + p / 2; yy < h - m; yy += p) for (let xx = m + b + p / 2; xx < w - m; xx += p) {
+      c.fillStyle = LINE; rr(c, xx - q / 2, yy - q / 2, q, q, q * 0.3); c.fill();
+      c.fillStyle = col; c.beginPath(); c.arc(xx, yy, q * 0.22, 0, TAU); c.fill();
+    }
+    const cx = w / 2, cy = h / 2, R = L * 0.39;
+    for (const s of [-1, 1]) {
+      c.beginPath(); c.arc(cx + s * L * 0.2, cy, L * 0.5, 0, TAU);
+      c.lineWidth = L * 0.05; c.strokeStyle = LINE; c.stroke();
+      c.lineWidth = L * 0.034; c.strokeStyle = col; c.stroke();
+    }
+    c.restore();
+    for (const s of [-1, 1]) {
+      const by = cy + s * h * 0.38, x0 = m + L * 0.02, x1 = w - m - L * 0.02, th = h * 0.03, arch = -s * h * 0.022;
+      c.beginPath(); c.moveTo(x0, by);
+      c.quadraticCurveTo(cx, by + arch - th, x1, by); c.quadraticCurveTo(cx, by + arch + th, x0, by); c.closePath();
+      c.fillStyle = col; c.fill(); c.strokeStyle = LINE; c.lineWidth = L * 0.007; c.stroke();
+      for (const e of [x0 + L * 0.07, x1 - L * 0.07]) { c.beginPath(); c.arc(e, by + arch * 0.35, L * 0.012, 0, TAU); c.stroke(); }
+    }
+    c.fillStyle = col; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();
+    c.strokeStyle = LINE; c.lineWidth = L * 0.008;
+    for (const r of [R, R - L * 0.022]) { c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.stroke(); }
+    for (let i = 0; i < 32; i++) {
+      const a = i / 32 * TAU, ca = Math.cos(a), sa = Math.sin(a);
+      c.lineWidth = L * 0.007; c.beginPath();
+      c.moveTo(cx + ca * R * 0.52, cy + sa * R * 0.52); c.lineTo(cx + ca * R * 0.82, cy + sa * R * 0.82); c.stroke();
+      c.lineWidth = L * 0.006; c.beginPath(); c.arc(cx + ca * R * 0.87, cy + sa * R * 0.87, L * 0.013, 0, TAU); c.stroke();
+      c.fillStyle = LINE; c.beginPath(); c.arc(cx + ca * R * 0.5, cy + sa * R * 0.5, L * 0.008, 0, TAU); c.fill();
+    }
+    c.lineWidth = L * 0.005; c.beginPath();
+    for (let i = 0; i <= 24; i++) {
+      const a0 = i / 24 * TAU, a1 = (i + 0.5) / 24 * TAU;
+      const P = (a, r) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+      const [x0, y0] = P(a0, R * 0.46), [x1, y1] = P(a1, R * 0.36);
+      i === 0 ? c.moveTo(x0, y0) : c.lineTo(x0, y0);
+      if (i < 24) c.lineTo(x1, y1);
+    }
+    c.stroke();
+    c.lineWidth = L * 0.006;
+    for (let i = 0; i < 20; i++) {
+      const a = i / 20 * TAU; c.beginPath();
+      for (let k = 0; k <= 10; k++) {
+        const t = k / 10, r = R * (0.04 + 0.29 * t), aa = a - t * 1.7;
+        const px = cx + Math.cos(aa) * r, py = cy + Math.sin(aa) * r;
+        k === 0 ? c.moveTo(px, py) : c.lineTo(px, py);
+      }
+      c.stroke();
+    }
+    c.fillStyle = LINE; c.beginPath(); c.arc(cx, cy, L * 0.014, 0, TAU); c.fill();
+    const rosette = (px, py, r) => {
+      c.lineWidth = L * 0.005; c.beginPath(); c.arc(px, py, r, 0, TAU); c.stroke();
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; c.beginPath(); c.arc(px + Math.cos(a) * r * 0.55, py + Math.sin(a) * r * 0.55, r * 0.28, 0, TAU); c.stroke(); }
+      c.fillStyle = LINE; c.beginPath(); c.arc(px, py, r * 0.16, 0, TAU); c.fill();
+    };
+    for (const my of [m + L * 0.028, h - m - L * 0.028]) {
+      c.beginPath(); c.moveTo(cx, my - L * 0.075); c.lineTo(cx + L * 0.1, my); c.lineTo(cx, my + L * 0.075); c.lineTo(cx - L * 0.1, my); c.closePath();
+      c.fillStyle = col; c.fill(); c.lineWidth = L * 0.007; c.stroke();
+      rosette(cx, my, L * 0.04);
+    }
+    for (const mx of [m + L * 0.028, w - m - L * 0.028]) {
+      c.beginPath(); c.arc(mx, cy, L * 0.056, 0, TAU); c.fillStyle = col; c.fill(); c.lineWidth = L * 0.007; c.stroke();
+      rosette(mx, cy, L * 0.038);
+    }
+    c.restore();
+  }
+
+  const PIPS = {
+    2: [[.5, .2], [.5, .8]], 3: [[.5, .2], [.5, .5], [.5, .8]],
+    4: [[.28, .2], [.72, .2], [.28, .8], [.72, .8]], 5: [[.28, .2], [.72, .2], [.5, .5], [.28, .8], [.72, .8]],
+    6: [[.28, .2], [.72, .2], [.28, .5], [.72, .5], [.28, .8], [.72, .8]],
+    7: [[.28, .2], [.72, .2], [.5, .35], [.28, .5], [.72, .5], [.28, .8], [.72, .8]],
+    8: [[.28, .2], [.72, .2], [.5, .35], [.28, .5], [.72, .5], [.5, .65], [.28, .8], [.72, .8]],
+    9: [[.28, .2], [.72, .2], [.28, .4], [.72, .4], [.5, .5], [.28, .6], [.72, .6], [.28, .8], [.72, .8]],
+    10: [[.28, .2], [.72, .2], [.5, .3], [.28, .4], [.72, .4], [.28, .6], [.72, .6], [.5, .7], [.28, .8], [.72, .8]],
+  };
+  function cardFront(c, x, y, w, h, rank, k, seed) {
+    const ink = k === 'h' || k === 'd' ? INK_RED : INK_BLACK;
+    const rand = rng(seed);
+    c.save(); c.translate(x, y);
+    rr(c, 0, 0, w, h, w * 0.05);
+    const g = c.createRadialGradient(w / 2, h / 2, w * 0.2, w / 2, h / 2, w * 0.95);
+    g.addColorStop(0, '#F6F2E6'); g.addColorStop(1, '#E4DAC2');
+    c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(60,50,30,.35)'; c.lineWidth = 1; c.stroke();
+    c.save(); c.clip();
+    for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(90,70,40,${0.05 + rand() * 0.06})`; c.fillRect(rand() * w, rand() * h, 1, 1); }
+    c.restore();
+    const corner = flip => {
+      c.save(); if (flip) { c.translate(w, h); c.rotate(Math.PI); }
+      c.fillStyle = ink; c.font = `700 ${w * 0.16}px Rokkitt, Rockwell, Georgia, serif`;
+      c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+      c.fillText(rank, w * 0.12, w * 0.2);
+      suit(c, k, w * 0.12, w * 0.3, w * 0.11); c.fill();
+      c.restore();
+    };
+    corner(false); corner(true);
+    c.fillStyle = ink;
+    if (rank === 'A') {
+      suit(c, k, w / 2, h / 2, w * 0.42); c.fill();
+      c.strokeStyle = ink; c.lineWidth = 1;
+      for (const s of [-1, 1]) {
+        c.beginPath(); c.moveTo(w / 2 + s * w * 0.26, h / 2 - w * 0.02);
+        c.bezierCurveTo(w / 2 + s * w * 0.36, h / 2 - w * 0.16, w / 2 + s * w * 0.18, h / 2 - w * 0.3, w / 2 + s * w * 0.1, h / 2 - w * 0.2);
+        c.moveTo(w / 2 + s * w * 0.26, h / 2 + w * 0.06);
+        c.bezierCurveTo(w / 2 + s * w * 0.36, h / 2 + w * 0.2, w / 2 + s * w * 0.2, h / 2 + w * 0.3, w / 2 + s * w * 0.08, h / 2 + w * 0.26);
+        c.stroke();
+      }
+      c.font = `600 ${w * 0.055}px Oswald, "Arial Narrow", sans-serif`; c.textAlign = 'center';
+      c.fillText('GOLDEN SPUR · 1899', w / 2, h * 0.84);
+    } else if (PIPS[rank]) {
+      for (const [px, py] of PIPS[rank]) {
+        c.save(); c.translate(w * (0.14 + px * 0.72), h * py);
+        if (py > 0.5) c.rotate(Math.PI);
+        suit(c, k, 0, 0, w * 0.17); c.fill(); c.restore();
+      }
+    } else {
+      const ox = w / 2, oy = h / 2, rx = w * 0.3, ry = h * 0.3;
+      c.save(); c.beginPath(); c.ellipse(ox, oy, rx, ry, 0, 0, TAU);
+      c.fillStyle = '#EFE6CF'; c.fill(); c.strokeStyle = ink; c.lineWidth = 1.2; c.stroke(); c.clip();
+      c.fillStyle = '#2C4F8A'; c.beginPath(); c.ellipse(ox, oy + ry * 0.95, rx * 0.95, ry * 0.55, 0, 0, TAU); c.fill();
+      c.fillStyle = INK_RED; c.beginPath(); c.ellipse(ox, oy + ry * 0.98, rx * 0.5, ry * 0.5, 0, 0, TAU); c.fill();
+      c.fillStyle = '#E9C9A6'; c.beginPath(); c.ellipse(ox, oy - ry * 0.12, rx * 0.3, ry * 0.3, 0, 0, TAU); c.fill();
+      c.fillStyle = '#8D8A86'; c.beginPath(); c.ellipse(ox, oy + ry * 0.12, rx * 0.26, ry * 0.2, 0, 0, Math.PI); c.fill();
+      c.fillStyle = '#C8962E'; c.beginPath();
+      c.moveTo(ox - rx * 0.3, oy - ry * 0.36); c.lineTo(ox - rx * 0.3, oy - ry * 0.62); c.lineTo(ox - rx * 0.15, oy - ry * 0.46);
+      c.lineTo(ox, oy - ry * 0.68); c.lineTo(ox + rx * 0.15, oy - ry * 0.46); c.lineTo(ox + rx * 0.3, oy - ry * 0.62); c.lineTo(ox + rx * 0.3, oy - ry * 0.36); c.closePath(); c.fill();
+      c.strokeStyle = 'rgba(27,26,23,.35)'; c.lineWidth = 0.7;
+      for (let t = -rx * 2; t < rx * 2; t += 4) { c.beginPath(); c.moveTo(ox + t, oy - ry); c.lineTo(ox + t + ry * 0.6, oy + ry); c.stroke(); }
+      c.restore();
+      c.fillStyle = ink;
+      suit(c, k, ox - rx * 0.78, oy - ry * 0.86, w * 0.08); c.fill();
+      suit(c, k, ox + rx * 0.78, oy + ry * 0.86, w * 0.08); c.fill();
+    }
+    c.restore();
+  }
+
+  function sector(c, r0, r1, a0, a1, col) {
+    c.beginPath(); c.arc(0, 0, r1, a0, a1); c.arc(0, 0, r0, a1, a0, true); c.closePath(); c.fillStyle = col; c.fill();
+  }
+  function arcText(c, s, r, mid, size, col) {
+    c.save(); c.font = `600 ${size}px Oswald, "Arial Narrow", sans-serif`; c.fillStyle = col;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    const ws = [...s].map(ch => c.measureText(ch).width + size * 0.08);
+    let a = mid - ws.reduce((p, q) => p + q, 0) / r / 2;
+    [...s].forEach((ch, i) => {
+      const da = ws[i] / r; c.save(); c.rotate(a + da / 2); c.translate(r, 0); c.rotate(Math.PI / 2); c.fillText(ch, 0, 0); c.restore(); a += da;
+    });
+    c.restore();
+  }
+  function chip(c, cx, cy, R, d, seed) {
+    const line = d.dark ? '#E9E5DD' : '#15110E', rand = rng(seed);
+    c.save(); c.translate(cx, cy);
+    c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.arc(R * 0.05, R * 0.09, R, 0, TAU); c.fill();
+    c.fillStyle = d.body; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill();
+    for (let k = 0; k < 8; k++) {
+      const a = k * Math.PI / 4 - Math.PI / 2;
+      sector(c, R * 0.8, R, a - 0.1745, a + 0.1745, '#FFF7F2');
+      if (k % 2 === 0) sector(c, R * 0.86, R * 0.95, a - 0.05, a + 0.05, d.body);
+    }
+    const lg = c.createRadialGradient(-R * 0.3, -R * 0.35, R * 0.05, 0, 0, R * 0.8);
+    lg.addColorStop(0, mix(d.label, '#FFFFFF', d.dark ? 0.12 : 0.28)); lg.addColorStop(1, d.label);
+    c.fillStyle = lg; c.beginPath(); c.arc(0, 0, R * 0.78, 0, TAU); c.fill();
+    for (let i = 0; i < 420; i++) {
+      const a = rand() * TAU, r = Math.sqrt(rand()) * R * 0.77;
+      c.fillStyle = rand() < 0.5 ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.14)';
+      c.fillRect(Math.cos(a) * r, Math.sin(a) * r, R * 0.012, R * 0.012);
+    }
+    c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = R * 0.012; c.beginPath(); c.arc(0, 0, R * 0.78, 0, TAU); c.stroke();
+    c.strokeStyle = line; c.lineWidth = R * 0.014; c.beginPath();
+    for (let i = 0; i <= 32; i++) {
+      const a = i / 32 * TAU, r = i % 2 ? R * 0.745 : R * 0.66;
+      i === 0 ? c.moveTo(Math.cos(a) * r, Math.sin(a) * r) : c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    c.stroke();
+    c.fillStyle = line;
+    for (let i = 0; i < 16; i++) {
+      const a = (2 * i + 1) / 32 * TAU; c.save(); c.rotate(a); c.translate(R * 0.745, 0);
+      c.beginPath(); c.moveTo(-R * 0.02, 0); c.lineTo(0, -R * 0.014); c.lineTo(R * 0.02, 0); c.lineTo(0, R * 0.014); c.closePath(); c.fill(); c.restore();
+    }
+    c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = R * 0.03;
+    arcText(c, 'GOLDEN SPUR SALOON', R * 0.565, -Math.PI / 2, R * 0.085, '#FFFFFF');
+    arcText(c, "EST. 1899 · HOLD'EM", R * 0.565, Math.PI / 2, R * 0.085, '#FFFFFF');
+    c.shadowBlur = 0;
+    c.fillStyle = d.dark ? '#0B0908' : '#141110'; c.beginPath(); c.arc(0, 0, R * 0.47, 0, TAU); c.fill();
+    if (d.dark) { c.strokeStyle = line; c.lineWidth = R * 0.012; c.stroke(); }
+    const marks = [['s', -3 * Math.PI / 4], ['h', -Math.PI / 4], ['c', Math.PI / 4], ['d', 3 * Math.PI / 4]];
+    for (const [k, a] of marks) {
+      c.save(); c.rotate(a); c.beginPath(); c.moveTo(R * 0.07, 0);
+      c.bezierCurveTo(R * 0.18, -R * 0.21, R * 0.43, -R * 0.21, R * 0.45, 0);
+      c.bezierCurveTo(R * 0.43, R * 0.21, R * 0.18, R * 0.21, R * 0.07, 0);
+      c.fillStyle = d.dark ? '#1B1816' : d.label; c.fill(); c.strokeStyle = line; c.lineWidth = R * 0.012; c.stroke(); c.restore();
+      const px = Math.cos(a) * R * 0.28, py = Math.sin(a) * R * 0.28;
+      suit(c, k, px, py, R * 0.15);
+      c.fillStyle = k === 'h' || k === 'd' ? '#C8202A' : '#141110'; c.fill();
+      c.strokeStyle = d.dark ? '#E9E5DD' : '#141110'; c.lineWidth = R * 0.008; c.stroke();
+    }
+    const glow = c.createRadialGradient(0, 0, 0, 0, 0, R * 0.14);
+    glow.addColorStop(0, 'rgba(255,255,255,.95)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = glow; c.beginPath(); c.arc(0, 0, R * 0.14, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = R * 0.008; c.beginPath();
+    c.moveTo(-R * 0.44, 0); c.lineTo(R * 0.44, 0); c.moveTo(0, -R * 0.44); c.lineTo(0, R * 0.44); c.stroke();
+    const size = R * (d.v.length <= 2 ? 0.22 : d.v.length === 3 ? 0.18 : 0.15);
+    c.font = `700 ${size}px Oswald, "Arial Narrow", sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineWidth = R * 0.02; c.strokeStyle = 'rgba(0,0,0,.55)'; c.fillStyle = '#FFFFFF';
+    for (const rot of [0, Math.PI]) { c.save(); c.rotate(rot); c.strokeText(d.v, R * 0.36, 0); c.fillText(d.v, R * 0.36, 0); c.restore(); }
+    c.restore();
+  }
+
+  function dealerButton(c, cx, cy, R) {
+    c.save(); c.translate(cx, cy);
+    c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.arc(R * 0.05, R * 0.09, R, 0, TAU); c.fill();
+    const rim = c.createLinearGradient(-R, -R, R, R);
+    rim.addColorStop(0, '#E3B387'); rim.addColorStop(0.5, '#8A5530'); rim.addColorStop(1, '#D39C6B');
+    c.fillStyle = rim; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill();
+    c.fillStyle = '#0F0F0D'; c.beginPath(); c.arc(0, 0, R * 0.9, 0, TAU); c.fill();
+    c.rotate(-22 * Math.PI / 180);
+    c.strokeStyle = '#E9E6DF'; c.lineWidth = R * 0.025;
+    c.beginPath(); c.moveTo(-R * 0.5, -R * 0.3); c.lineTo(R * 0.62, -R * 0.3); c.moveTo(-R * 0.62, R * 0.3); c.lineTo(R * 0.5, R * 0.3); c.stroke();
+    c.fillStyle = '#EDEAE3'; c.font = `400 ${R * 0.4}px Oswald, "Arial Narrow", sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('DEALER', 0, R * 0.02);
+    c.restore();
+  }
+
+  function walnut(c, x, y, w, h, base, seed, vertical) {
+    const rand = rng(seed);
+    c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
+    c.fillStyle = base; c.fillRect(x, y, w, h);
+    const n = Math.round((vertical ? w : h) / 3.2);
+    for (let i = 0; i < n; i++) {
+      const t = rand();
+      c.strokeStyle = t < 0.5 ? `rgba(41,21,14,${0.12 + rand() * 0.22})` : `rgba(158,120,103,${0.08 + rand() * 0.14})`;
+      c.lineWidth = 0.6 + rand() * 1.4; c.beginPath();
+      const off = rand() * (vertical ? w : h), amp = 1 + rand() * 4, fr = 0.01 + rand() * 0.03, ph = rand() * TAU;
+      for (let s = 0; s <= (vertical ? h : w); s += 6) {
+        const o = off + Math.sin(s * fr + ph) * amp;
+        vertical ? (s === 0 ? c.moveTo(x + o, y + s) : c.lineTo(x + o, y + s)) : (s === 0 ? c.moveTo(x + s, y + o) : c.lineTo(x + s, y + o));
+      }
+      c.stroke();
+    }
+    c.restore();
+  }
+  function dealerCase(c) {
+    const X = 16, Y = 132, W = 440, H = 280, wall = 12;
+    c.fillStyle = 'rgba(0,0,0,.35)'; rr(c, X + 6, 20, W, H + Y - 10, 8); c.fill();
+    walnut(c, X, 16, W, 106, '#7A5140', 11, false);
+    c.fillStyle = '#2D2B2F'; c.fillRect(X + 16, 30, W - 32, 78);
+    c.fillStyle = '#C9A45C'; c.textAlign = 'center';
+    c.font = 'italic 600 26px Georgia, "Times New Roman", serif'; c.fillText('Golden Spur Saloon', X + W / 2, 70);
+    c.font = '500 11px Oswald, "Arial Narrow", sans-serif'; c.fillText('EST. 1899 · HOUSE OF FAIR PLAY', X + W / 2, 92);
+    c.fillStyle = '#121110'; c.fillRect(X + 100, 118, 28, 18); c.fillRect(X + W - 128, 118, 28, 18);
+    walnut(c, X, Y, W, H, '#6B4636', 29, false);
+    c.fillStyle = '#4A2F23'; c.fillRect(X + wall, Y + wall, W - 2 * wall, H - 2 * wall);
+    walnut(c, X + wall, Y + wall, W - 2 * wall, H - 2 * wall, '#5A3A2C', 47, true);
+    const slot = (sx, sy) => { c.fillStyle = '#2A1810'; rr(c, sx - 3, sy - 3, 74, 100, 4); c.fill(); };
+    slot(36, 150); slot(36, 300);
+    cardBack(c, 37, 151, 66, 92, CRIMSON);
+    cardBack(c, 37, 301, 66, 92, NAVY);
+    c.fillStyle = '#2A1810'; c.beginPath(); c.arc(70, 272, 24, 0, TAU); c.fill();
+    const counts = [20, 40, 40, 30, 30, 20, 20];
+    CHIPS.forEach((d, i) => {
+      const x0 = 120 + i * 46, y0 = 150, len = 244;
+      c.fillStyle = '#26160F'; rr(c, x0, y0, 42, len, 6); c.fill();
+      const n = counts[i], rollH = n * 3.3, rand = rng(100 + i);
+      for (let k = 0; k < n; k++) {
+        const yy = y0 + 4 + k * 3.3;
+        c.fillStyle = d.body; c.fillRect(x0 + 3, yy, 36, 3.3);
+        c.fillStyle = '#FFF7F2';
+        for (let j = 0; j < 3; j++) { const sx = x0 + 3 + ((k * 7 + j * 13 + Math.floor(rand() * 5)) % 30); c.fillRect(sx, yy + 0.4, 5, 2.6); }
+      }
+      const shade = c.createLinearGradient(x0 + 3, 0, x0 + 39, 0);
+      shade.addColorStop(0, 'rgba(0,0,0,.45)'); shade.addColorStop(0.35, 'rgba(255,255,255,.12)'); shade.addColorStop(1, 'rgba(0,0,0,.5)');
+      c.fillStyle = shade; c.fillRect(x0 + 3, y0 + 4, 36, rollH);
+    });
+    dealerButton(c, 508, 382, 38);
+  }
+
+  function paint(id, fn) {
+    const cv = document.getElementById(id);
+    if (!cv) return;
+    if (!cv.dataset.w) {
+      cv.dataset.w = cv.getAttribute('width'); cv.dataset.h = cv.getAttribute('height');
+      cv.style.width = cv.dataset.w + 'px';
+    }
+    const W = +cv.dataset.w, H = +cv.dataset.h, s = Math.min(3, Math.max(2, window.devicePixelRatio || 1));
+    cv.width = Math.round(W * s); cv.height = Math.round(H * s);
+    const c = cv.getContext('2d');
+    c.setTransform(s, 0, 0, s, 0, 0); c.clearRect(0, 0, W, H);
+    fn(c, W, H);
+  }
+  function drawAll() {
+    paint('cv-cover', c => {
+      const card = (fn, x, y, a) => { c.save(); c.translate(x, y); c.rotate(a * Math.PI / 180); c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = 16; c.shadowOffsetY = 6; fn(); c.restore(); };
+      card(() => cardBack(c, -75, -105, 150, 210, NAVY), 150, 220, -14);
+      card(() => cardBack(c, -75, -105, 150, 210, CRIMSON), 262, 196, 4);
+      card(() => cardFront(c, -75, -105, 150, 210, 'A', 's', 7), 380, 226, 16);
+      chip(c, 120, 410, 50, CHIPS[4], 3); chip(c, 222, 432, 50, CHIPS[2], 5); chip(c, 320, 410, 50, CHIPS[1], 9);
+      dealerButton(c, 460, 420, 44);
+    });
+    paint('cv-backs', c => { cardBack(c, 20, 29, 230, 322, NAVY); cardBack(c, 270, 29, 230, 322, CRIMSON); });
+    paint('cv-fronts', c => {
+      cardFront(c, 10, 40, 170, 238, 'A', 's', 1);
+      cardFront(c, 185, 40, 170, 238, '7', 'd', 2);
+      cardFront(c, 360, 40, 170, 238, 'K', 'h', 3);
+    });
+    paint('cv-chips', c => CHIPS.forEach((d, i) => chip(c, 100 + i * 200, 86, 78, d, 20 + i)));
+    paint('cv-case', dealerCase);
+  }
+  drawAll();
+  if (document.fonts && document.fonts.load) {
+    Promise.all(['700 20px Oswald', '600 20px Oswald', '400 20px Oswald', '700 20px Rokkitt'].map(f => document.fonts.load(f)))
+      .then(drawAll, () => {});
+  }
+})();
+</script>
