@@ -11,7 +11,7 @@ As páginas web rodam direto no navegador e também ficam publicadas no GitHub P
 | --- | --- | --- |
 | [`f1-air-simulation`](f1-air-simulation/) | Carro de F1 em perspectiva num túnel de vento 3D: fumaça, partículas, mapa de pressão (Cp) e balança aerodinâmica ao vivo. | [jvbarea.github.io/discovery/f1-air-simulation](https://jvbarea.github.io/discovery/f1-air-simulation/) |
 | [`arvore-ao-sol`](arvore-ao-sol/) | Árvore gerada por código sob o sol, com path tracing escrito do zero em WebGL2, sem bibliotecas e sem RTX. | [jvbarea.github.io/discovery/arvore-ao-sol](https://jvbarea.github.io/discovery/arvore-ao-sol/) |
-| [`poker-saloon`](poker-saloon/) | Especificação em slides de um poker Texas Hold'em 3D num saloon de 1899, para o Claude Opus implementar em WebGL2 puro. | [jvbarea.github.io/discovery/poker-saloon/especificacao.html](https://jvbarea.github.io/discovery/poker-saloon/especificacao.html) |
+| [`poker-saloon`](poker-saloon/) | Golden Spur Hold'em: poker Texas Hold'em 3D num saloon de 1899, em WebGL2 e JavaScript escritos do zero (personagens em SDF, som sintetizado), e a especificação em slides que o originou. | [jvbarea.github.io/discovery/poker-saloon](https://jvbarea.github.io/discovery/poker-saloon/) |
 
 ## Como rodar localmente
 
